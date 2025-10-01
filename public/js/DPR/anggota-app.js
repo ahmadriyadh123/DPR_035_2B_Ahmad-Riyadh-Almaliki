@@ -1,0 +1,207 @@
+// File: public/js/anggota-app.js
+
+// Event listener utama yang dijalankan setelah DOM selesai dimuat
+document.addEventListener('DOMContentLoaded', () => {
+    const appContent = document.getElementById('app-content');
+    const modalPlaceholder = document.getElementById('modal-placeholder');
+
+    // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
+
+    // Fungsi untuk merender daftar anggota beserta pagination
+    function renderAnggotaList(data) {
+        const { anggota, pager } = data;
+        let anggotaRows = '';
+        if (anggota && anggota.length > 0) {
+            anggota.forEach(anggota => {
+                anggotaRows += `
+                    <tr>
+                        <td>${anggota.id_anggota}</td>
+                        <td>${anggota.nama_depan}</td>
+                        <td>${anggota.nama_belakang}</td>
+                        <td>${anggota.gelar_depan}</td>
+                        <td>${anggota.gelar_belakang}</td>
+                        <td>${anggota.jabatan}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning edit-btn" data-id="${anggota.id_anggota}">Edit</button>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="${anggota.id_anggota}" data-name="${anggota.nama_depan} ${anggota.nama_belakang}">Hapus</button>
+                        </td>
+                    </tr>`;
+            });
+        } else {
+            anggotaRows = '<tr><td colspan="4" class="text-center">Tidak ada data anggota.</td></tr>';
+        }
+
+        let paginationHtml = '';
+        if (pager && pager.pageCount > 1) {
+            paginationHtml = `
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item ${pager.currentPage === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" data-page="${pager.currentPage - 1}">Previous</a>
+                        </li>
+                        <li class="page-item ${pager.currentPage === pager.pageCount ? 'disabled' : ''}">
+                            <a class="page-link" href="#" data-page="${pager.currentPage + 1}">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            `;
+        }
+
+        appContent.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Kelola Anggota</h2>
+                <button class="btn btn-primary add-member-btn">Tambah Anggota</button>
+            </div>
+            <table class="table table-hover">
+                <thead><tr><th>ID</th><th>Nama Depan</th><th>Nama Belakang</th><th>Gelar Depan</th><th>Gelar Belakang</th><th>Jabatan</th><th>Aksi</th></tr></thead>
+                <tbody>${anggotaRows}</tbody>
+            </table>
+            ${paginationHtml}`;
+    }
+
+    // Fungsi untuk merender modal form tambah/edit anggota
+    function renderMemberFormModal(title, anggota = {}) {
+        const isEdit = !!anggota.id_anggota;
+        const formId = isEdit ? 'edit-member-form' : 'add-member-form';
+        const namaDepan = anggota.nama_depan || '';
+        const namaBelakang = anggota.nama_belakang || '';
+        const gelarDepan = anggota.gelar_depan || '';
+        const gelarBelakang = anggota.gelar_belakang || '';
+        const jabatan = anggota.jabatan || '';
+        const actionUrl = isEdit ? `/api/anggota/${anggota.id_anggota}` : '/api/anggota';
+        const method = isEdit ? 'PUT' : 'POST';
+
+        const modalHtml = `
+            <div class="modal fade" id="memberFormModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <form id="${formId}" data-url="${actionUrl}" data-method="${method}">
+                            <div class="modal-header">
+                                <h5 class="modal-title">${title}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="form-nama-depan" class="form-label">Nama Depan</label>
+                                    <input type="text" id="form-nama-depan" class="form-control" value="${namaDepan}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="form-nama-belakang" class="form-label">Nama Belakang</label>
+                                    <input type="text" id="form-nama-belakang" class="form-control" value="${namaBelakang}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="form-gelar-depan" class="form-label">Gelar Depan</label>
+                                    <input type="text" id="form-gelar-depan" class="form-control" value="${gelarDepan}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="form-gelar-belakang" class="form-label">Gelar Belakang</label>
+                                    <input type="text" id="form-gelar-belakang" class="form-control" value="${gelarBelakang}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="form-jabatan" class="form-label">Jabatan</label>
+                                    <input type="text" id="form-jabatan" class="form-control" value="${jabatan}" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-primary">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>`;
+        modalPlaceholder.innerHTML = modalHtml;
+        const memberModal = new bootstrap.Modal(document.getElementById('memberFormModal'));
+        memberModal.show();
+    }
+
+    // --- FUNGSI UTAMA & EVENT HANDLING ---
+
+    // Fungsi untuk memuat daftar anggota dari API
+    async function loadMembers(page = 1) {
+        try {
+            const data = await fetchData(`/api/anggota?page=${page}`);
+            renderMemberList(data);
+        } catch (error) {
+            appContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+        }
+    }
+
+    // Event listener untuk klik pada appContent (tombol aksi, pagination, dll.)
+    appContent.addEventListener('click', async (event) => {
+
+        if (event.target.classList.contains('add-member-btn')) {
+            renderMemberFormModal('Tambah Anggota Baru');
+        }
+
+        if (event.target.classList.contains('edit-btn')) {
+            const memberId = event.target.dataset.id_anggota;
+            try {
+                const memberData = await fetchData(`/api/anggota/${memberId}`);
+                renderMemberFormModal('Edit Anggota', memberData);
+            } catch (error) {
+                Swal.fire('Error!', error.message, 'error');
+            }
+        }
+
+        if (event.target.classList.contains('delete-btn')) {
+            const memberId = event.target.dataset.id_anggota;
+            const memberName = event.target.dataset.nama_depan + ' ' + event.target.dataset.nama_belakang;
+
+            const result = await Swal.fire({
+                title: 'Apakah Anda yakin?',
+                html: `Anda akan menghapus anggota: <b>${memberName}</b>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Ya, hapus!'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    // Kirim request DELETE ke API
+                    const response = await fetchData(`/api/anggota/${memberId}`, {
+                        method: 'DELETE'
+                    });
+                    Swal.fire('Berhasil!', response.message, 'success');
+                    loadMembers(); // Muat ulang daftar anggota
+                } catch (error) {
+                    Swal.fire('Error!', error.message, 'error');
+                }
+            }        
+        }
+    });
+
+    // Event listener untuk submit form di modal (tambah/edit anggota)
+    modalPlaceholder.addEventListener('submit', async (event) => {
+        if (event.target.id === 'add-member-form' || event.target.id === 'edit-member-form') {
+            event.preventDefault();
+            const form = event.target;
+            const url = form.dataset.url;
+            const method = form.dataset.method;
+            const formData = {
+                nama_depan: document.getElementById('form-nama-depan').value,
+                nama_belakang: document.getElementById('form-nama-belakang').value,
+                gelar_depan: document.getElementById('form-gelar-depan').value,
+                gelar_belakang: document.getElementById('form-gelar-belakang').value,
+                jabatan: document.getElementById('form-jabatan').value
+            };
+
+            try {
+                const response = await fetchData(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                bootstrap.Modal.getInstance(document.getElementById('memberFormModal')).hide();
+                Swal.fire('Berhasil!', response.message, 'success');
+                loadMembers();
+            } catch (error) {
+                Swal.fire('Error!', error.message, 'error');
+            }
+        }
+    });
+
+    // Inisialisasi: muat daftar anggota pertama kali
+    loadMembers(1);
+});
