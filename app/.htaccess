@@ -1,0 +1,23 @@
+# Protect front controller from direct access
+<Files index.php>
+    Order Deny,Allow
+    Deny from all
+    Allow from 127.0.0.1
+    Allow from ::1
+</Files>
+
+# Turn on URL rewriting
+RewriteEngine On
+
+# Set the base path
+RewriteBase /
+
+# Protect the system and application folders
+RewriteRule ^(system|app)($|/) /index.php/$1 [L]
+
+# Allow direct access to existing files and directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rewrite all other requests to index.php
+RewriteRule ^(.*)$ index.php/$1 [L]

@@ -1,0 +1,250 @@
+CRITICAL - 2025-08-31 04:08:45 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/1]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('1')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('1')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 04:15:05 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/3]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('3')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('3')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 04:15:12 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/2]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('2')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('2')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 04:15:19 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/1]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('1')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('1')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 04:15:23 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/1]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('1')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('1')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 04:15:24 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/1]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('1')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('1')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:03:07 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/1]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('1')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('1')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:03:13 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/3]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('3')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('3')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:03:17 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/2]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('2')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('2')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:03:22 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/1]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('1')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('1')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:05:52 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/1]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('1')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('1')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:05:58 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/3]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('3')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('3')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:10:43 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/3]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('3')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('3')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:10:48 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/3]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('3')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('3')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 06:11:04 --> TypeError: CodeIgniter\Database\BasePreparedQuery::prepare(): Argument #1 ($sql) must be of type string, CodeIgniter\Database\MySQLi\Builder given, called in C:\xampp\htdocs\ci-news\system\Database\BaseConnection.php on line 1003
+[Method: GET, Route: mahasiswa/3]
+in SYSTEMPATH\Database\BasePreparedQuery.php on line 81.
+ 1 SYSTEMPATH\Database\BaseConnection.php(1003): CodeIgniter\Database\BasePreparedQuery->prepare(Object(CodeIgniter\Database\MySQLi\Builder), [])
+ 2 APPPATH\Models\MahasiswaModel.php(24): CodeIgniter\Database\BaseConnection->prepare(Object(Closure))
+ 3 APPPATH\Controllers\MahasiswaController.php(30): App\Models\MahasiswaModel->getMahasiswaById('3')
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->detail('3')
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 09:57:54 --> ErrorException: Undefined array key "npm"
+[Method: GET, Route: mahasiswa]
+in APPPATH\Views\mahasiswa_view.php on line 35.
+ 1 APPPATH\Views\mahasiswa_view.php(35): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "npm"', 'C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php', 35)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('mahasiswa_view', [], true)
+ 5 APPPATH\Controllers\MahasiswaController.php(30): view('mahasiswa_view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 09:57:58 --> ErrorException: Undefined array key "npm"
+[Method: GET, Route: mahasiswa]
+in APPPATH\Views\mahasiswa_view.php on line 35.
+ 1 APPPATH\Views\mahasiswa_view.php(35): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "npm"', 'C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php', 35)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('mahasiswa_view', [], true)
+ 5 APPPATH\Controllers\MahasiswaController.php(30): view('mahasiswa_view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 09:57:59 --> ErrorException: Undefined array key "npm"
+[Method: GET, Route: mahasiswa]
+in APPPATH\Views\mahasiswa_view.php on line 35.
+ 1 APPPATH\Views\mahasiswa_view.php(35): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "npm"', 'C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php', 35)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('mahasiswa_view', [], true)
+ 5 APPPATH\Controllers\MahasiswaController.php(30): view('mahasiswa_view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 09:58:01 --> ErrorException: Undefined array key "npm"
+[Method: GET, Route: mahasiswa]
+in APPPATH\Views\mahasiswa_view.php on line 35.
+ 1 APPPATH\Views\mahasiswa_view.php(35): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "npm"', 'C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php', 35)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\ci-news\\app\\Views\\mahasiswa_view.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('mahasiswa_view', [], true)
+ 5 APPPATH\Controllers\MahasiswaController.php(30): view('mahasiswa_view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-08-31 12:13:30 --> ErrorException: Undefined array key "jurusan"
+[Method: GET, Route: mahasiswa/edit/1]
+in APPPATH\Views\edit_mahasiswa_view.php on line 25.
+ 1 APPPATH\Views\edit_mahasiswa_view.php(25): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "jurusan"', 'C:\\xampp\\htdocs\\ci-news\\app\\Views\\edit_mahasiswa_view.php', 25)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\ci-news\\app\\Views\\edit_mahasiswa_view.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('edit_mahasiswa_view', [], true)
+ 5 APPPATH\Controllers\MahasiswaController.php(98): view('edit_mahasiswa_view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\MahasiswaController->edit('1')
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\MahasiswaController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
