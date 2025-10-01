@@ -5,7 +5,13 @@
     <meta charset="UTF-8">
     <title><?= esc($title) ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- CSRF Meta Tags untuk JavaScript -->
+    <meta name="X-CSRF-TOKEN" content="<?= csrf_token() ?>">
+    <meta name="X-CSRF-HEADER" content="<?= csrf_hash() ?>">
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <style>
         body {
             background-color: #f8f9fa;
@@ -44,7 +50,7 @@
     <?php endif; ?>
 
     <!-- Form login dengan validasi client-side -->
-    <form id="login-form" action="/login" method="post" novalidate>
+    <form id="login-form" action="<?= site_url('login') ?>" method="post" novalidate>
         <?= csrf_field() ?>
         <div class="mb-3">
             <label for="username" class="form-label">Username</label>
@@ -62,13 +68,18 @@
     </form>
 </div>
 
-<!-- Script JavaScript untuk validasi form login sebelum submit -->
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('login-form');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
 
+    // Fokus ke input username saat halaman dimuat
+    usernameInput.focus();
+
+    // Validasi form sebelum submit
     loginForm.addEventListener('submit', function(event) {
         resetValidation();
         let isValid = true;
@@ -85,7 +96,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!isValid) {
             event.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Form Tidak Valid',
+                text: 'Silakan lengkapi semua field yang diperlukan.',
+                confirmButtonColor: '#0d6efd'
+            });
+        } else {
+            // Tampilkan loading saat submit
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Memproses...';
         }
+    });
+
+    // Enter key submit
+    [usernameInput, passwordInput].forEach(input => {
+        input.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        });
     });
 
     function showError(inputElement, message) {
@@ -98,6 +129,18 @@ document.addEventListener('DOMContentLoaded', function() {
         loginForm.querySelectorAll('.is-invalid').forEach(f => f.classList.remove('is-invalid'));
         loginForm.querySelectorAll('.error-message').forEach(m => m.textContent = '');
     }
+
+    // Auto-hide error alerts setelah 5 detik
+    const alertElements = document.querySelectorAll('.alert');
+    alertElements.forEach(alert => {
+        setTimeout(() => {
+            alert.style.transition = 'opacity 0.5s ease';
+            alert.style.opacity = '0';
+            setTimeout(() => {
+                alert.remove();
+            }, 500);
+        }, 5000);
+    });
 });
 </script>
 
