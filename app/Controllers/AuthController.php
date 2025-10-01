@@ -19,7 +19,12 @@ class AuthController extends BaseController
     {
         // Jika sudah login, redirect ke home
         if (session()->get('isLoggedIn')) {
-            return redirect()->to('/');
+            $role = session()->get('user_role');
+            if ($role === 'admin') {
+                return redirect()->to('/admin/courses');
+            } else {
+                return redirect()->to('/dashboard');
+            }
         }
 
         $data = [
@@ -56,8 +61,11 @@ class AuthController extends BaseController
             ];
             $session->set($ses_data);
 
+            // Redirect berdasarkan role
             if ($user->role === 'admin') {
-                return redirect()->to('/admin/berita');
+                return redirect()->to('/admin/courses');
+            } elseif ($user->role === 'dpr') {
+                return redirect()->to('/dpr/anggota');
             } else {
                 return redirect()->to('/dashboard');
             }
