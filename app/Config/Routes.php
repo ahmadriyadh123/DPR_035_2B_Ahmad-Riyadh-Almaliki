@@ -9,9 +9,17 @@ use CodeIgniter\Router\RouteCollection;
 // Default route - redirect to login page
 $routes->get('/', 'AuthController::login');
 
+// Debug route
+$routes->get('debug/session', 'DebugController::sessionInfo');
+$routes->get('help/login', function() {
+    return view('login_instructions');
+});
+
 // Authentication routes
 $routes->get('/login', 'AuthController::login');
 $routes->post('/login', 'AuthController::processLogin');
+$routes->get('login', 'AuthController::login');
+$routes->post('login', 'AuthController::processLogin');
 $routes->get('/logout', 'AuthController::logout');
 
 // Admin routes with authentication filter
@@ -31,8 +39,7 @@ $routes->group('admin', ['filter' => 'auth:admin', 'namespace' => 'App\Controlle
     // === DPR Admin Routes ===
     $routes->get('dpr/anggota', '\App\Controllers\DPR\Admin\AnggotaController::spaShell');
     $routes->get('dpr/anggota/(:any)', '\App\Controllers\DPR\Admin\AnggotaController::spaShell');
-    $routes->get('dpr/komponengaji', '\App\Controllers\DPR\Admin\GajiTunjanganController::spaShell');
-    $routes->get('dpr/komponengaji/(:any)', '\App\Controllers\DPR\Admin\GajiTunjanganController::spaShell');
+    $routes->get('dpr/komponengaji/(:any)', '\App\Controllers\DPR\Admin\KomponenGajiController::spaShell');
 });
 
 // Routes for authenticated users (general)
@@ -47,6 +54,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // === DPR User Routes ===
     $routes->get('dpr/anggota', '\App\Controllers\DPR\PenggajianController::spaShell');
     $routes->get('dpr/penggajian', '\App\Controllers\DPR\PenggajianController::spaShell');
+    $routes->get('admin/dpr/komponengaji', '\App\Controllers\DPR\Admin\KomponenGajiController::spaShell');
 });
 
 // API routes
