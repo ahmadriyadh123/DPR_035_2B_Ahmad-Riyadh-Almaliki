@@ -7,6 +7,6 @@ class PenggajianController extends BaseController
     public function spaShell()
     {
         $data = ['title' => 'Kelola Penggajian'];
-        return view('penggajian/index', $data);
+        return view('DPR/penggajian/index', $data);
     }
 }
