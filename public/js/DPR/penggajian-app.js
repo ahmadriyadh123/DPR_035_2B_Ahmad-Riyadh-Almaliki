@@ -45,7 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         appContent.innerHTML = `
-            <h2>Data Penggajian Anggota DPR</h2>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Data Penggajian Anggota DPR</h2>
+                <button class="btn btn-primary add-btn">Tambah Penggajian</button>
+            </div>
             <div class="card">
                 <div class="card-body">
                     <table class="table table-striped">
@@ -140,6 +143,70 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    // Fungsi untuk merender form tambah/edit penggajian
+    function renderAddEditForm(data = {}) {
+        const { anggotaList = [], selectedAnggotaId = null } = data;
+        
+        // Membuat opsi dropdown untuk anggota
+        let anggotaOptions = '<option value="">Pilih Anggota</option>';
+        if (anggotaList && anggotaList.length > 0) {
+            anggotaList.forEach(anggota => {
+                anggotaOptions += `<option value="${anggota.id}" ${selectedAnggotaId == anggota.id ? 'selected' : ''}>
+                    ${anggota.nama_depan} ${anggota.nama_belakang} (${anggota.jabatan})
+                </option>`;
+            });
+        }
+
+        appContent.innerHTML = `
+            <h2>Tambah Data Penggajian</h2>
+            <div class="card">
+                <div class="card-body">
+                    <form id="penggajian-form">
+                        <div class="mb-3">
+                            <label for="id_anggota" class="form-label">Anggota</label>
+                            <select class="form-select" id="id_anggota" name="id_anggota" required>
+                                ${anggotaOptions}
+                            </select>
+                        </div>
+                        
+                        <div id="komponen-gaji-container">
+                            <!-- Komponen gaji akan dimuat di sini -->
+                            <p class="text-muted">Pilih anggota untuk melihat komponen gaji yang tersedia.</p>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">Simpan</button>
+                            <button type="button" class="btn btn-secondary back-btn">Batal</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+
+    // Fungsi untuk merender daftar komponen gaji yang bisa dipilih
+    function renderKomponenGajiSelector(komponenList) {
+        const container = document.getElementById('komponen-gaji-container');yyyyyyyyyy
+        if (!komponenList || komponenList.length === 0) {
+            container.innerHTML = '<p class="text-danger">Tidak ada komponen gaji yang tersedia untuk jabatan ini.</p>';
+            return;
+        }
+
+        let checkboxesHtml = '<h5>Komponen Gaji Tersedia</h5>';
+        komponenList.forEach(komponen => {
+            checkboxesHtml += `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="id_komponen[]" value="${komponen.id}" id="komponen-${komponen.id}">
+                    <label class="form-check-label" for="komponen-${komponen.id}">
+                        ${komponen.nama_komponen} (Rp ${parseFloat(komponen.nominal).toLocaleString('id-ID')})
+                    </label>
+                </div>
+            `;
+        });
+
+        container.innerHTML = checkboxesHtml;
+    }
+
     // --- FUNGSI-FUNGSI API ---
 
     // Fungsi untuk memuat daftar penggajian dengan pagination
@@ -164,6 +231,96 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Fungsi untuk mengambil daftar anggota yang belum memiliki data penggajian
+    async function fetchAvailableAnggota() {
+        try {
+            const response = await fetch('/api/anggota?status=unassigned');
+            if (!response.ok) throw new Error('Gagal mengambil data anggota.');
+            return await response.json();
+        } catch (error) {
+            showToast(error.message, 'error');
+            return [];
+        }
+    }
+
+    // Fungsi untuk mengambil komponen gaji yang relevan berdasarkan jabatan
+    async function fetchKomponenByJabatan(jabatan) {
+        try {
+            const response = await fetch(`/api/komponen_gaji?jabatan=${jabatan}`);
+            if (!response.ok) throw new Error('Gagal mengambil komponen gaji.');
+            return await response.json();
+        } catch (error) {
+            showToast(error.message, 'error');
+            return [];
+        }
+    }
+
+    // Fungsi untuk menyimpan data penggajian baru
+    async function savePenggajian(data) {
+        try {
+            const response = await fetch('/api/penggajian', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="X-CSRF-HEADER"]').content
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.messages.error || 'Gagal menyimpan data penggajian.');
+            }
+            return await response.json();
+        } catch (error) {
+            showToast(error.message, 'error');
+            return null;
+        }
+    }
+
+    // --- EVENT HANDLERS ---
+
+    // Handler untuk tombol "Tambah Penggajian"
+    async function handleAddButtonClick() {
+        const anggotaData = await fetchAvailableAnggota();
+        renderAddEditForm({ anggotaList: anggotaData.anggota });
+    }
+
+    // Handler untuk perubahan pada dropdown anggota
+    async function handleAnggotaChange(e) {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        const jabatan = selectedOption.text.split('(')[1]?.replace(')', '').trim();
+        
+        if (jabatan) {
+            const komponenData = await fetchKomponenByJabatan(jabatan);
+            renderKomponenGajiSelector(komponenData.komponen_gaji);
+        } else {
+            document.getElementById('komponen-gaji-container').innerHTML = '<p class="text-muted">Pilih anggota untuk melihat komponen gaji yang tersedia.</p>';
+        }
+    }
+
+    // Handler untuk submit form penggajian
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        
+        const data = {
+            id_anggota: formData.get('id_anggota'),
+            id_komponen: formData.getAll('id_komponen[]')
+        };
+
+        if (!data.id_anggota || data.id_komponen.length === 0) {
+            showToast('Harap pilih anggota dan minimal satu komponen gaji.', 'warning');
+            return;
+        }
+
+        const result = await savePenggajian(data);
+        if (result) {
+            showToast('Data penggajian berhasil disimpan.', 'success');
+            loadPenggajianList(); // Kembali ke daftar penggajian
+        }
+    }
+
     // --- EVENT LISTENERS ---
 
     // Event listener untuk pagination dan tombol aksi
@@ -183,6 +340,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (event.target.matches('.back-btn')) {
             loadPenggajian();
+        }
+
+        if (event.target.matches('.add-btn')) {
+            handleAddButtonClick();
+        }
+    });
+
+    // Event delegation untuk form
+    appContent.addEventListener('change', (e) => {
+        if (e.target.id === 'id_anggota') {
+            handleAnggotaChange(e);
+        }
+    });
+
+    // Event delegation untuk form
+    appContent.addEventListener('submit', (e) => {
+        if (e.target.id === 'penggajian-form') {
+            handleFormSubmit(e);
         }
     });
 
