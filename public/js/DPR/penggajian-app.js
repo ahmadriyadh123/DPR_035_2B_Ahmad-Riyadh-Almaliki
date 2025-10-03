@@ -1,31 +1,60 @@
 // File: public/js/DPR/penggajian-app.js
 
-// Event listener utama yang dijalankan setelah DOM selesai dimuat
 document.addEventListener('DOMContentLoaded', () => {
     const appContent = document.getElementById('app-content');
+    let csrfName = document.querySelector('meta[name=csrf-cookie-name]').content;
+    let csrfHash = document.querySelector('meta[name=csrf-token]').content;
+
+    // --- FUNGSI-FUNGSI HELPER ---
+    const showLoading = (message = 'Memuat...') => {
+        appContent.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                <div class="spinner-border text-primary" role="status"></div>
+                <h4 class="ms-3">${message}</h4>
+            </div>`;
+    };
+
+    const showError = (message) => {
+        appContent.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+    };
+    
+    const showSuccess = (message) => {
+        const successAlert = `<div class="alert alert-success alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
+        // Prepend to appContent so it doesn't get overwritten by list render
+        const currentContent = appContent.innerHTML;
+        appContent.innerHTML = successAlert + currentContent;
+    };
+
+    const updateCsrf = (newHash) => {
+        if (newHash) {
+            csrfHash = newHash;
+            document.querySelector('meta[name=csrf-token]').content = newHash;
+        }
+    };
 
     // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
 
-    // Fungsi untuk merender daftar penggajian (view only)
-    function renderPenggajianList(data) {
+    function renderPenggajianSummary(data) {
         const { penggajian, pager } = data;
         let penggajianRows = '';
         if (penggajian && penggajian.length > 0) {
             penggajian.forEach(item => {
-                const totalGaji = item.komponen_gaji.reduce((sum, komponen) => sum + parseFloat(komponen.nominal || 0), 0);
                 penggajianRows += `
                     <tr>
                         <td>${item.nama_anggota}</td>
                         <td>${item.jabatan}</td>
-                        <td>${item.komponen_gaji.length} komponen</td>
-                        <td class="text-end">Rp ${totalGaji.toLocaleString('id-ID')}</td>
+                        <td class="text-end">Rp ${parseFloat(item.take_home_pay).toLocaleString('id-ID')}</td>
                         <td>
                             <button class="btn btn-sm btn-info detail-btn" data-id="${item.id_anggota}">Detail</button>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="${item.id_anggota}">Hapus</button>
                         </td>
                     </tr>`;
             });
         } else {
-            penggajianRows = '<tr><td colspan="5" class="text-center">Tidak ada data penggajian.</td></tr>';
+            penggajianRows = '<tr><td colspan="4" class="text-center">Belum ada data penggajian yang dibuat.</td></tr>';
         }
 
         let paginationHtml = '';
@@ -33,10 +62,15 @@ document.addEventListener('DOMContentLoaded', () => {
             paginationHtml = `
                 <nav aria-label="Page navigation">
                     <ul class="pagination justify-content-center">
-                        <li class="page-item ${pager.currentPage === 1 ? 'disabled' : ''}">
+                        <li class="page-item ${pager.currentPage == 1 ? 'disabled' : ''}">
                             <a class="page-link" href="#" data-page="${pager.currentPage - 1}">Previous</a>
                         </li>
-                        <li class="page-item ${pager.currentPage === pager.pageCount ? 'disabled' : ''}">
+                        ${[...Array(pager.pageCount).keys()].map(p => `
+                            <li class="page-item ${pager.currentPage == p + 1 ? 'active' : ''}">
+                                <a class="page-link" href="#" data-page="${p + 1}">${p + 1}</a>
+                            </li>
+                        `).join('')}
+                        <li class="page-item ${pager.currentPage == pager.pageCount ? 'disabled' : ''}">
                             <a class="page-link" href="#" data-page="${pager.currentPage + 1}">Next</a>
                         </li>
                     </ul>
@@ -46,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         appContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>Data Penggajian Anggota DPR</h2>
+                <h2>Data Penggajian Anggota</h2>
                 <button class="btn btn-primary add-btn">Tambah Penggajian</button>
             </div>
             <div class="card">
@@ -56,8 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <tr>
                                 <th>Nama Anggota</th>
                                 <th>Jabatan</th>
-                                <th>Jumlah Komponen</th>
-                                <th class="text-end">Total Gaji</th>
+                                <th class="text-end">Take Home Pay</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -69,16 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // Fungsi untuk merender detail penggajian
     function renderDetailPenggajian(data) {
-        const { anggota, komponen_gaji } = data;
+        const { anggota, komponen_gaji, take_home_pay } = data;
         let komponenRows = '';
-        let totalGaji = 0;
 
         if (komponen_gaji && komponen_gaji.length > 0) {
             komponen_gaji.forEach(komponen => {
                 const nominal = parseFloat(komponen.nominal || 0);
-                totalGaji += nominal;
                 komponenRows += `
                     <tr>
                         <td>${komponen.nama_komponen}</td>
@@ -87,46 +117,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>`;
             });
         } else {
-            komponenRows = '<tr><td colspan="3" class="text-center">Tidak ada komponen gaji.</td></tr>';
+            komponenRows = '<tr><td colspan="3" class="text-center">Tidak ada komponen gaji yang ditetapkan.</td></tr>';
         }
+
+        const namaLengkap = `${anggota.gelar_depan || ''} ${anggota.nama_depan} ${anggota.nama_belakang}, ${anggota.gelar_belakang || ''}`.trim().replace(/^,|,$/g, '');
 
         appContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>Detail Penggajian: ${anggota.nama_depan} ${anggota.nama_belakang}</h2>
+                <h2>Detail Penggajian: ${namaLengkap}</h2>
                 <button class="btn btn-secondary back-btn">Kembali</button>
             </div>
             
             <div class="row">
                 <div class="col-md-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h5>Informasi Anggota</h5>
-                        </div>
+                        <div class="card-header"><h5>Informasi Anggota</h5></div>
                         <div class="card-body">
-                            <p><strong>Nama:</strong> ${anggota.gelar_depan || ''} ${anggota.nama_depan} ${anggota.nama_belakang} ${anggota.gelar_belakang || ''}</p>
+                            <p><strong>Nama:</strong> ${namaLengkap}</p>
                             <p><strong>Jabatan:</strong> ${anggota.jabatan}</p>
                             <p><strong>Status Pernikahan:</strong> ${anggota.status_pernikahan || '-'}</p>
+                            <p><strong>Jumlah Anak:</strong> ${anggota.jumlah_anak || 0}</p>
                         </div>
                     </div>
                 </div>
-                
                 <div class="col-md-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h5>Ringkasan Gaji</h5>
-                        </div>
+                        <div class="card-header"><h5>Ringkasan Gaji</h5></div>
                         <div class="card-body">
                             <p><strong>Jumlah Komponen:</strong> ${komponen_gaji.length}</p>
-                            <p><strong>Total Gaji:</strong> <span class="text-success fs-4">Rp ${totalGaji.toLocaleString('id-ID')}</span></p>
+                            <p><strong>Take Home Pay:</strong> <span class="text-success fs-4 fw-bold">Rp ${parseFloat(take_home_pay).toLocaleString('id-ID')}</span></p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="card mt-3">
-                <div class="card-header">
-                    <h5>Rincian Komponen Gaji</h5>
-                </div>
+                <div class="card-header"><h5>Rincian Komponen Gaji</h5></div>
                 <div class="card-body">
                     <table class="table table-striped">
                         <thead>
@@ -143,50 +169,40 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // Fungsi untuk merender form tambah/edit penggajian
     function renderAddEditForm(data = {}) {
-        const { anggotaList = [], selectedAnggotaId = null } = data;
-        
-        // Membuat opsi dropdown untuk anggota
-        let anggotaOptions = '<option value="">Pilih Anggota</option>';
+        const { anggotaList = [] } = data;
+        let anggotaOptions = '<option value="">-- Pilih Anggota --</option>';
         if (anggotaList && anggotaList.length > 0) {
             anggotaList.forEach(anggota => {
-                anggotaOptions += `<option value="${anggota.id}" ${selectedAnggotaId == anggota.id ? 'selected' : ''}>
-                    ${anggota.nama_depan} ${anggota.nama_belakang} (${anggota.jabatan})
-                </option>`;
+                const namaLengkap = `${anggota.gelar_depan || ''} ${anggota.nama_depan} ${anggota.nama_belakang}, ${anggota.gelar_belakang || ''}`.trim().replace(/^,|,$/g, '');
+                anggotaOptions += `<option value="${anggota.id}">${namaLengkap}</option>`;
             });
         }
 
         appContent.innerHTML = `
-            <h2>Tambah Data Penggajian</h2>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Tambah Penggajian</h2>
+                <button class="btn btn-secondary back-btn">Kembali</button>
+            </div>
             <div class="card">
                 <div class="card-body">
                     <form id="penggajian-form">
                         <div class="mb-3">
                             <label for="id_anggota" class="form-label">Anggota</label>
-                            <select class="form-select" id="id_anggota" name="id_anggota" required>
-                                ${anggotaOptions}
-                            </select>
+                            <select class="form-select" id="id_anggota" name="id_anggota" required>${anggotaOptions}</select>
                         </div>
-                        
-                        <div id="komponen-gaji-container">
-                            <!-- Komponen gaji akan dimuat di sini -->
-                            <p class="text-muted">Pilih anggota untuk melihat komponen gaji yang tersedia.</p>
+                        <div id="komponen-gaji-selector" class="mb-3">
+                            <p class="text-muted">Pilih anggota untuk melihat komponen gaji.</p>
                         </div>
-
-                        <div class="mt-4">
-                            <button type="submit" class="btn btn-primary">Simpan</button>
-                            <button type="button" class="btn btn-secondary back-btn">Batal</button>
-                        </div>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
                     </form>
                 </div>
             </div>
         `;
     }
 
-    // Fungsi untuk merender daftar komponen gaji yang bisa dipilih
     function renderKomponenGajiSelector(komponenList) {
-        const container = document.getElementById('komponen-gaji-container');yyyyyyyyyy
+        const container = document.getElementById('komponen-gaji-selector');
         if (!komponenList || komponenList.length === 0) {
             container.innerHTML = '<p class="text-danger">Tidak ada komponen gaji yang tersedia untuk jabatan ini.</p>';
             return;
@@ -200,167 +216,174 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label class="form-check-label" for="komponen-${komponen.id}">
                         ${komponen.nama_komponen} (Rp ${parseFloat(komponen.nominal).toLocaleString('id-ID')})
                     </label>
-                </div>
-            `;
+                </div>`;
         });
-
         container.innerHTML = checkboxesHtml;
     }
 
     // --- FUNGSI-FUNGSI API ---
 
-    // Fungsi untuk memuat daftar penggajian dengan pagination
-    async function loadPenggajian(page = 1) {
+    const apiUrl = document.body.dataset.apiUrl;
+
+    async function fetchPenggajianSummary(page = 1) {
+        showLoading('Memuat Data Penggajian...');
         try {
-            appContent.innerHTML = '<h4>Memuat data penggajian...</h4>';
-            const data = await fetchData(`/api/penggajian?page=${page}`);
-            renderPenggajianList(data);
+            const response = await fetch(`${apiUrl}/penggajian/summary?page=${page}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await response.json();
+            updateCsrf(data.csrf_hash);
+            if (!response.ok) throw new Error(`Gagal mengambil data (Status: ${response.status})`);
+            renderPenggajianSummary(data);
         } catch (error) {
-            appContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            showError(error.message);
         }
     }
 
-    // Fungsi untuk memuat detail penggajian anggota
-    async function loadDetailPenggajian(anggotaId) {
+    async function fetchDetailPenggajian(id) {
+        showLoading('Memuat Detail Penggajian...');
         try {
-            appContent.innerHTML = '<h4>Memuat detail penggajian...</h4>';
-            const data = await fetchData(`/api/penggajian/${anggotaId}`);
+            const response = await fetch(`${apiUrl}/penggajian/${id}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await response.json();
+            updateCsrf(data.csrf_hash);
+            if (!response.ok) throw new Error(`Gagal mengambil data (Status: ${response.status})`);
             renderDetailPenggajian(data);
         } catch (error) {
-            appContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            showError(error.message);
         }
     }
 
-    // Fungsi untuk mengambil daftar anggota yang belum memiliki data penggajian
     async function fetchAvailableAnggota() {
         try {
-            const response = await fetch('/api/anggota?status=unassigned');
-            if (!response.ok) throw new Error('Gagal mengambil data anggota.');
-            return await response.json();
+            const response = await fetch(`${apiUrl}/anggota?limit=1000`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) throw new Error('Gagal mengambil daftar anggota.');
+            const data = await response.json();
+            updateCsrf(data.csrf_hash);
+            return data.anggota;
         } catch (error) {
-            showToast(error.message, 'error');
+            showError(error.message);
             return [];
         }
     }
 
-    // Fungsi untuk mengambil komponen gaji yang relevan berdasarkan jabatan
     async function fetchKomponenByJabatan(jabatan) {
+        if (!jabatan) return [];
         try {
-            const response = await fetch(`/api/komponen_gaji?jabatan=${jabatan}`);
+            const response = await fetch(`${apiUrl}/komponengaji/by-jabatan/${jabatan}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             if (!response.ok) throw new Error('Gagal mengambil komponen gaji.');
-            return await response.json();
+            const data = await response.json();
+            updateCsrf(data.csrf_hash);
+            return data;
         } catch (error) {
-            showToast(error.message, 'error');
+            showError(error.message);
             return [];
         }
     }
 
-    // Fungsi untuk menyimpan data penggajian baru
-    async function savePenggajian(data) {
+    async function savePenggajian(formData) {
+        showLoading('Menyimpan data...');
         try {
-            const response = await fetch('/api/penggajian', {
+            const response = await fetch(`${apiUrl}/penggajian`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="X-CSRF-HEADER"]').content
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [csrfName]: csrfHash
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(formData)
             });
+
+            const result = await response.json();
+            updateCsrf(result.csrf_hash);
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.messages.error || 'Gagal menyimpan data penggajian.');
+                throw new Error(result.error || 'Gagal menyimpan data.');
             }
-            return await response.json();
+            
+            fetchPenggajianSummary();
+            showSuccess('Data penggajian berhasil disimpan.');
+
         } catch (error) {
-            showToast(error.message, 'error');
-            return null;
+            fetchPenggajianSummary();
+            showError(error.message);
         }
     }
 
     // --- EVENT HANDLERS ---
 
-    // Handler untuk tombol "Tambah Penggajian"
     async function handleAddButtonClick() {
-        const anggotaData = await fetchAvailableAnggota();
-        renderAddEditForm({ anggotaList: anggotaData.anggota });
+        const anggotaList = await fetchAvailableAnggota();
+        renderAddEditForm({ anggotaList });
     }
 
-    // Handler untuk perubahan pada dropdown anggota
-    async function handleAnggotaChange(e) {
-        const selectedOption = e.target.options[e.target.selectedIndex];
-        const jabatan = selectedOption.text.split('(')[1]?.replace(')', '').trim();
+    function handleDetailButtonClick(event) {
+        const id = event.target.dataset.id;
+        if (id) fetchDetailPenggajian(id);
+    }
+
+    function handleBackButtonClick() {
+        fetchPenggajianSummary();
+    }
+
+    function handlePaginationClick(event) {
+        event.preventDefault();
+        const page = event.target.dataset.page;
+        if (page) fetchPenggajianSummary(page);
+    }
+
+    async function handleAnggotaChange(event) {
+        const selectedAnggotaId = event.target.value;
+        if (!selectedAnggotaId) {
+            renderKomponenGajiSelector([]);
+            return;
+        }
         
-        if (jabatan) {
-            const komponenData = await fetchKomponenByJabatan(jabatan);
-            renderKomponenGajiSelector(komponenData.komponen_gaji);
-        } else {
-            document.getElementById('komponen-gaji-container').innerHTML = '<p class="text-muted">Pilih anggota untuk melihat komponen gaji yang tersedia.</p>';
+        const anggotaList = await fetchAvailableAnggota();
+        const selectedAnggota = anggotaList.find(a => a.id == selectedAnggotaId);
+        
+        if (selectedAnggota) {
+            const komponenList = await fetchKomponenByJabatan(selectedAnggota.jabatan);
+            renderKomponenGajiSelector(komponenList);
         }
     }
 
-    // Handler untuk submit form penggajian
-    async function handleFormSubmit(e) {
-        e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-        
-        const data = {
-            id_anggota: formData.get('id_anggota'),
-            id_komponen: formData.getAll('id_komponen[]')
-        };
+    function handleFormSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const id_anggota = form.id_anggota.value;
+        const id_komponen = [...form.querySelectorAll('input[name="id_komponen[]"]:checked')].map(cb => cb.value);
 
-        if (!data.id_anggota || data.id_komponen.length === 0) {
-            showToast('Harap pilih anggota dan minimal satu komponen gaji.', 'warning');
+        if (!id_anggota || id_komponen.length === 0) {
+            showError('Harap pilih anggota dan minimal satu komponen gaji.');
             return;
         }
 
-        const result = await savePenggajian(data);
-        if (result) {
-            showToast('Data penggajian berhasil disimpan.', 'success');
-            loadPenggajianList(); // Kembali ke daftar penggajian
-        }
+        savePenggajian({ id_anggota, id_komponen });
     }
 
-    // --- EVENT LISTENERS ---
+    // --- DELEGASI EVENT ---
 
-    // Event listener untuk pagination dan tombol aksi
     appContent.addEventListener('click', (event) => {
-        if (event.target.matches('.page-link')) {
-            event.preventDefault();
-            const page = parseInt(event.target.dataset.page, 10);
-            if (page && page > 0) {
-                loadPenggajian(page);
-            }
-        }
-        
-        if (event.target.matches('.detail-btn')) {
-            const anggotaId = event.target.dataset.id;
-            loadDetailPenggajian(anggotaId);
-        }
-        
-        if (event.target.matches('.back-btn')) {
-            loadPenggajian();
-        }
-
-        if (event.target.matches('.add-btn')) {
-            handleAddButtonClick();
-        }
+        if (event.target.classList.contains('add-btn')) handleAddButtonClick();
+        else if (event.target.classList.contains('detail-btn')) handleDetailButtonClick(event);
+        else if (event.target.classList.contains('back-btn')) handleBackButtonClick();
+        else if (event.target.matches('.pagination a')) handlePaginationClick(event);
     });
 
-    // Event delegation untuk form
-    appContent.addEventListener('change', (e) => {
-        if (e.target.id === 'id_anggota') {
-            handleAnggotaChange(e);
-        }
+    appContent.addEventListener('change', (event) => {
+        if (event.target.id === 'id_anggota') handleAnggotaChange(event);
     });
 
-    // Event delegation untuk form
-    appContent.addEventListener('submit', (e) => {
-        if (e.target.id === 'penggajian-form') {
-            handleFormSubmit(e);
-        }
+    appContent.addEventListener('submit', (event) => {
+        if (event.target.id === 'penggajian-form') handleFormSubmit(event);
     });
 
-    // Muat data penggajian saat halaman pertama kali dibuka
-    loadPenggajian();
+    // --- INISIALISASI ---
+    fetchPenggajianSummary();
 });
