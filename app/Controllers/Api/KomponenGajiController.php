@@ -8,7 +8,7 @@ use App\Models\DPR\KomponenGajiModel;
 class KomponenGajiController extends ResourceController
 {
     /**
-     * Mengambil daftar semua komponen gaji dengan pagination.
+     * Mengambil daftar semua komponen gaji dengan pagination dan search.
      * Method: GET
      * URL: /api/komponen_gaji
      */
@@ -16,12 +16,25 @@ class KomponenGajiController extends ResourceController
     {
         $komponenGajiModel = new KomponenGajiModel();
         
-        $page = $this->request->getVar('page') ?? 1;
+        $page = $_GET['page'] ?? 1;
+        $search = $_GET['search'] ?? '';
         $perPage = 10;
+        
+        // Jika ada parameter search, lakukan filtering
+        if (!empty($search)) {
+            $komponenGajiModel->groupStart()
+                ->like('CAST(id_komponen_gaji AS TEXT)', $search, 'both', null, true)
+                ->orLike('nama_komponen', $search, 'both', null, true)
+                ->orLike('CAST(kategori AS TEXT)', $search, 'both', null, true)
+                ->orLike('CAST(jabatan AS TEXT)', $search, 'both', null, true)
+                ->orLike('CAST(nominal AS TEXT)', $search, 'both', null, true)
+                ->orLike('CAST(satuan AS TEXT)', $search, 'both', null, true)
+                ->groupEnd();
+        }
         
         $data = [
             'komponen_gaji' => $komponenGajiModel->paginate($perPage, 'default', $page),
-            'pager' => $komponenGajiModel->pager
+            'pager' => $komponenGajiModel->pager->getDetails()
         ];
         
         return $this->respond($data);

@@ -5,10 +5,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const appContent = document.getElementById('app-content');
     const modalPlaceholder = document.getElementById('modal-placeholder');
 
+    // Cek apakah utils.js sudah dimuat
+    if (typeof fetchData === 'undefined') {
+        console.error('ERROR: utils.js tidak dimuat! Pastikan utils.js dimuat sebelum script ini.');
+        if (appContent) {
+            appContent.innerHTML = '<div class="alert alert-danger">Error: utils.js tidak dimuat!</div>';
+        }
+        return;
+    }
+
     // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
 
     // Fungsi untuk merender daftar komponen gaji beserta pagination
     function renderKomponenList(data) {
+        // Simpan nilai search yang sedang diketik sebelum re-render
+        const currentSearchValue = document.getElementById('search-input')?.value || '';
+        
         const { komponen_gaji, pager } = data;
         let komponenGajiRows = '';
         if (komponen_gaji && komponen_gaji.length > 0) {
@@ -28,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>`;
             });
         } else {
-            komponenGajiRows = '<tr><td colspan="4" class="text-center">Tidak ada data komponen gaji.</td></tr>';
+            komponenGajiRows = '<tr><td colspan="7" class="text-center">Tidak ada data komponen gaji.</td></tr>';
         }
 
         let paginationHtml = '';
@@ -50,13 +62,31 @@ document.addEventListener('DOMContentLoaded', () => {
         appContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2>Kelola Komponen Gaji</h2>
-                <button class="btn btn-primary add-komponen-btn">Tambah Komponen Gaji</button>
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control" id="search-input" placeholder="Cari nama, kategori, jabatan, atau nominal..." style="width: 300px;">
+                    <button class="btn btn-secondary" id="clear-search-btn">Clear</button>
+                    <button class="btn btn-primary add-komponen-btn">Tambah Komponen Gaji</button>
+                </div>
             </div>
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Nama Komponen</th><th>Kategori</th><th>Jabatan</th><th>Nominal</th><th>Satuan</th><th>Aksi</th></tr></thead>
-                <tbody>${komponenGajiRows}</tbody>
-            </table>
-            ${paginationHtml}`;
+            <div class="card">
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead><tr><th>ID</th><th>Nama Komponen</th><th>Kategori</th><th>Jabatan</th><th>Nominal</th><th>Satuan</th><th>Aksi</th></tr></thead>
+                        <tbody>${komponenGajiRows}</tbody>
+                    </table>
+                    ${paginationHtml}
+                </div>
+            </div>`;
+            
+        // Kembalikan nilai search setelah re-render
+        setTimeout(() => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput && currentSearchValue) {
+                searchInput.value = currentSearchValue;
+                // Set cursor di akhir teks
+                searchInput.setSelectionRange(currentSearchValue.length, currentSearchValue.length);
+            }
+        }, 0);
     }
 
     // Fungsi untuk merender modal form tambah/edit komponen gaji
@@ -118,9 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNGSI UTAMA & EVENT HANDLING ---
 
     // Fungsi untuk memuat daftar komponen dari API
-    async function loadKomponen(page = 1) {
+    async function loadKomponen(page = 1, search = '') {
         try {
-            const data = await fetchData(`/api/komponengaji?page=${page}`);
+            let url = `/api/komponengaji?page=${page}`;
+            if (search.trim()) {
+                url += `&search=${encodeURIComponent(search.trim())}`;
+            }
+            const data = await fetchData(url);
             renderKomponenList(data);
         } catch (error) {
             appContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
@@ -198,6 +232,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadKomponen();
             } catch (error) {
                 Swal.fire('Error!', error.message, 'error');
+            }
+        }
+    });
+
+    // Event handler untuk search input (menggunakan debounce)
+    appContent.addEventListener('input', (event) => {
+        if (event.target.id === 'search-input') {
+            // Debounce search untuk menghindari terlalu banyak request
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                const searchValue = event.target.value;
+                loadKomponen(1, searchValue);
+            }, 500);
+        }
+    });
+
+    // Event handler untuk clear search button
+    appContent.addEventListener('click', (event) => {
+        if (event.target.id === 'clear-search-btn') {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.value = '';
+                loadKomponen(1, '');
             }
         }
     });
