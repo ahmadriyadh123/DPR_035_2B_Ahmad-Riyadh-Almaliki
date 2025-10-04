@@ -1,7 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Bagian head: meta tags, title dinamis, viewport, Bootstrap CSS, dan gaya khusus -->
+    <!--    <!-- Form login dengan validasi client-side -->
+    <form id="login-form" action="<?= site_url('login') ?>" method="post" novalidate>
+        <?= csrf_field() ?>
+        <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" id="username" name="username" class="form-control">
+            <div class="error-message"></div>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" name="password" class="form-control">
+            <div class="error-message"></div>
+        </div>
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+    </form>eta tags, title dinamis, viewport, Bootstrap CSS, dan gaya khusus -->
     <meta charset="UTF-8">
     <title><?= esc($title) ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,12 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 text: 'Silakan lengkapi semua field yang diperlukan.',
                 confirmButtonColor: '#0d6efd'
             });
-        } else {
-            // Tampilkan loading saat submit
-            const submitBtn = loginForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Memproses...';
         }
+        // Hapus loading spinner - langsung submit form tanpa delay
     });
 
     // Enter key submit

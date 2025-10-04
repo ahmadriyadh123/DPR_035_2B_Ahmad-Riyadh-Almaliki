@@ -22,12 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const fetchOptions = { ...options, headers };
         
-        console.log('🔒 CSRF Token:', csrfTokenValue); // Debug log
-        console.log('📤 Request:', url, fetchOptions); // Debug log
+        console.log('CSRF Token:', csrfTokenValue); // Debug log
+        console.log('Request:', url, fetchOptions); // Debug log
         
         const response = await fetch(url, fetchOptions);
         
-        console.log('📥 Response status:', response.status); // Debug log
+        console.log('Response status:', response.status); // Debug log
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -206,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await Swal.fire({
                 title: 'Apakah Anda yakin?',
                 html: `Anda akan menghapus anggota: <b>${memberName}</b>`,
-                icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 confirmButtonText: 'Ya, hapus!'
@@ -243,8 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 status_pernikahan: document.getElementById('form-status-pernikahan').value
             };
 
-            console.log('🚀 Sending data:', formData); // Debug log
-            console.log('📡 Method:', method, 'URL:', url); // Debug log
+            console.log('Sending data:', formData); // Debug log
+            console.log('Method:', method, 'URL:', url); // Debug log
 
             try {
                 const response = await fetchData(url, {

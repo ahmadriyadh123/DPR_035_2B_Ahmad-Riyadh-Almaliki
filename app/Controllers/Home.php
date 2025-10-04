@@ -6,9 +6,8 @@ class Home extends BaseController
     public function index()
     {
         $data = [
-            'title' => 'Home',
-            'content' => view('welcome')
+            'title' => 'Portal Data DPR - Akses Publik'
         ];
-        return view('template', $data);
+        return view('public/homepage', $data);
     }
 }

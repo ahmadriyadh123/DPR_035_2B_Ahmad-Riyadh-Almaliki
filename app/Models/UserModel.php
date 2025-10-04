@@ -7,8 +7,8 @@ use CodeIgniter\Model;
 class UserModel extends Model
 {
     protected $table = 'pengguna';
-    protected $primaryKey = 'id';
-    protected $allowedFields = ['username', 'password', 'role', ''];
+    protected $primaryKey = 'id_pengguna';
+    protected $allowedFields = ['username', 'password', 'role'];
     protected $returnType    = 'object';
     public function getUserByUsername($username)
     {

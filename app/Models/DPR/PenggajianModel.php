@@ -185,7 +185,7 @@ class PenggajianModel extends Model
         // 2. Ambil semua komponen gaji yang terhubung dengan anggota
         $assignedKomponen = $this->where('id_anggota', $id_anggota)
                                 ->join('komponen_gaji', 'komponen_gaji.id_komponen_gaji = penggajian.id_komponen_gaji')
-                                ->select('komponen_gaji.*') 
+                                ->select('komponen_gaji.*') // Hanya pilih kolom dari komponen_gaji
                                 ->findAll();
 
         // 3. Hitung take home pay

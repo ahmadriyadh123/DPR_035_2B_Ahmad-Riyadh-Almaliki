@@ -127,6 +127,8 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // === DPR User & Admin Routes ===
     $routes->group('dpr', ['namespace' => 'App\Controllers\DPR'], static function ($routes) {
         $routes->get('penggajian', 'PenggajianController::spaShell');
+        $routes->get('anggota', 'Admin\AnggotaController::spaShell');
+        $routes->get('anggota/(:any)', 'Admin\AnggotaController::spaShell');
         $routes->get('komponengaji', 'Admin\KomponenGajiController::spaShell');
         $routes->get('komponengaji/(:any)', 'Admin\KomponenGajiController::spaShell');
         
@@ -137,12 +139,6 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
             $routes->get('komponengaji/(:any)', 'KomponenGajiController::spaShell');
         });
     });
-});
-
-// Testing routes without auth (temporary)
-$routes->group('dpr', ['namespace' => 'App\Controllers\DPR'], static function ($routes) {
-    $routes->get('anggota', 'Admin\AnggotaController::spaShell');
-    $routes->get('anggota/(:any)', 'Admin\AnggotaController::spaShell');
 });
 
 // DPR API routes
@@ -173,4 +169,21 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], static function ($
     $routes->post('anggota', 'AnggotaController::create');
     $routes->put('anggota/(:num)', 'AnggotaController::update/$1');
     $routes->delete('anggota/(:num)', 'AnggotaController::delete/$1');
+    
+    // Penggajian API (temporary without auth for testing)
+    $routes->get('penggajian/summary', 'PenggajianController::summary');
+    $routes->get('penggajian/available-anggota', 'PenggajianController::availableAnggota');
+    $routes->get('penggajian/calculate/(:num)', 'PenggajianController::calculate/$1');
+    $routes->get('penggajian/(:num)', 'PenggajianController::show/$1');
+    $routes->post('penggajian', 'PenggajianController::create');
+    $routes->put('penggajian/(:num)', 'PenggajianController::update/$1');
+    $routes->delete('penggajian/(:num)', 'PenggajianController::delete/$1');
+    
+    // Komponen Gaji API (temporary without auth for testing)
+    $routes->get('komponengaji', 'KomponenGajiController::index');
+    $routes->get('komponengaji/(:num)', 'KomponenGajiController::show/$1');
+    $routes->get('komponengaji/by-jabatan/(:any)', 'KomponenGajiController::getByJabatan/$1');
+    $routes->post('komponengaji', 'KomponenGajiController::create');
+    $routes->put('komponengaji/(:num)', 'KomponenGajiController::update/$1');
+    $routes->delete('komponengaji/(:num)', 'KomponenGajiController::delete/$1');
 });

@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const penggajianId = form.getAttribute('data-penggajian-id');
         const isEdit = penggajianId && penggajianId !== '';
 
-        console.log('📝 Form submitted:', { id_anggota, id_komponen, penggajianId, isEdit });
+        console.log('Form submitted:', { id_anggota, id_komponen, penggajianId, isEdit });
 
         if (!id_anggota) {
             // Gunakan SweetAlert untuk notifikasi yang lebih baik

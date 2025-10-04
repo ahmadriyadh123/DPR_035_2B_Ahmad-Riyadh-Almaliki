@@ -118,10 +118,10 @@ class PenggajianController extends ResourceController
     public function summary()
     {
         // Debug logging
-        log_message('info', '🔄 PenggajianController::summary called');
-        log_message('info', '📊 Request method: ' . $this->request->getMethod());
-        log_message('info', '📊 Is AJAX: ' . ($this->request->hasHeader('X-Requested-With') ? 'yes' : 'no'));
-        log_message('info', '📊 Session isLoggedIn: ' . (session()->get('isLoggedIn') ? 'yes' : 'no'));
+        log_message('info', 'PenggajianController::summary called');
+        log_message('info', 'Request method: ' . $this->request->getMethod());
+        log_message('info', 'Is AJAX: ' . ($this->request->hasHeader('X-Requested-With') ? 'yes' : 'no'));
+        log_message('info', 'Session isLoggedIn: ' . (session()->get('isLoggedIn') ? 'yes' : 'no'));
         
         $anggotaModel = new AnggotaModel();
         $penggajianModel = new PenggajianModel();
@@ -220,9 +220,22 @@ class PenggajianController extends ResourceController
      */
     public function create()
     {
+        log_message('info', 'PenggajianController::create called');
+        log_message('info', 'Request method: ' . $this->request->getMethod());
+        
         $model = new PenggajianModel();
         $input = $this->request->getBody();
-        $data = json_decode($input, true) ?? [];
+
+        log_message('info', 'Raw input data: ' . $input);
+        
+        $data = json_decode($input, true);
+        
+        if (!$data) {
+            log_message('error', 'Invalid JSON data received');
+            return $this->fail('Data JSON tidak valid', 400);
+        }
+
+        log_message('info', 'Decoded data: ' . print_r($data, true));
 
         // Selalu perbarui CSRF hash di setiap response
         $csrf_hash = csrf_hash();
@@ -230,21 +243,34 @@ class PenggajianController extends ResourceController
         $id_anggota = $data['id_anggota'] ?? null;
         $id_komponen = $data['id_komponen'] ?? [];
 
+        log_message('info', 'ID Anggota: ' . $id_anggota);
+        log_message('info', 'ID Komponen: ' . print_r($id_komponen, true));
+
         // Validasi input dasar
-        if (empty($id_anggota) || empty($id_komponen)) {
-            return $this->fail('ID Anggota dan minimal satu komponen gaji harus dipilih.', 400);
+        if (empty($id_anggota)) {
+            log_message('error', 'ID Anggota tidak boleh kosong');
+            return $this->fail('ID Anggota harus dipilih.', 400);
+        }
+        
+        if (empty($id_komponen) || !is_array($id_komponen)) {
+            log_message('error', 'Komponen gaji tidak valid: ' . print_r($id_komponen, true));
+            return $this->fail('Minimal satu komponen gaji harus dipilih.', 400);
         }
 
         try {
+            log_message('info', 'Attempting to save data...');
             // Panggil metode di model untuk menyimpan data
             $model->assignKomponenToAnggota($id_anggota, $id_komponen);
             
+            log_message('info', 'Data penggajian berhasil disimpan');
             return $this->respondCreated([
                 'message' => 'Data penggajian berhasil disimpan.',
                 'csrf_hash' => $csrf_hash
             ]);
 
         } catch (\Exception $e) {
+            log_message('error', 'Error saving penggajian: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             // Tangani error, termasuk dari validasi di model
             return $this->fail([
                 'error' => $e->getMessage(),

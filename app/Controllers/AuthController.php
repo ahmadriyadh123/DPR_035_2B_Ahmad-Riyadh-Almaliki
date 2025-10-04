@@ -47,23 +47,29 @@ class AuthController extends BaseController
         $username = $this->request->getVar('username');
         $password = $this->request->getVar('password');
 
+        // Debug: log request data
+        log_message('debug', 'Login attempt for username: ' . $username);
+        
+        if (empty($username) || empty($password)) {
+            $session->setFlashdata('msg', 'Username dan password harus diisi.');
+            return redirect()->to('/login');
+        }
+
         $user = $model->where('username', $username)->first();
 
-        // 1. Cek jika user ditemukan DAN password cocok
         if ($user && password_verify($password, $user->password)) {
-            
-            // 2. Jika berhasil, buat data session
             $ses_data = [
-                'user_id'    => $user->id,
+                'user_id'    => $user->id_pengguna,
                 'user_name'  => $user->username,
                 'user_role'  => $user->role,
-                'isLoggedIn'  => TRUE // <--- PERUBAHAN DI SINI
+                'isLoggedIn' => true,
             ];
             $session->set($ses_data);
 
-            // Redirect berdasarkan role
+            log_message('debug', 'Login successful. Session data: ' . json_encode($session->get()));
+
             if ($user->role === 'admin') {
-                return redirect()->to('/admin/courses');
+                return redirect()->to('/admin/dpr/anggota');
             } elseif ($user->role === 'dpr') {
                 return redirect()->to('/dpr/anggota');
             } else {
@@ -71,6 +77,7 @@ class AuthController extends BaseController
             }
         }
         
+        log_message('error', 'Login failed for username: ' . $username);
         $session->setFlashdata('msg', 'Username atau Password salah.');
         return redirect()->to('/login');
     }

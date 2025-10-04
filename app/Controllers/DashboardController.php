@@ -12,7 +12,6 @@ class DashboardController extends BaseController
             'title' => 'Dashboard'
         ];
         
-        // Pastikan view yang dipanggil adalah 'dashboard_view'
         return view('dashboard_view', $data);
     }
 }
