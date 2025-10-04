@@ -7,7 +7,7 @@
         <!-- Elemen loading dengan spinner Bootstrap dan pesan teks -->
         <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
             <div class="spinner-border text-primary" role="status"></div>
-            <h4 class="ms-3">Memuat Mata Kuliah...</h4>
+            <h4 class="ms-3">Memuat Data Penggajian...</h4>
         </div>
     </div>
 </div>
@@ -15,5 +15,5 @@
 
 <!-- Bagian script khusus halaman untuk memuat file JavaScript aplikasi mata kuliah mahasiswa -->
 <?= $this->section('pageScripts') ?>
-<script src="<?= base_url('js/penggajian-course-app.js') ?>"></script>
+<script src="<?= base_url('js/DPR/penggajian-app.js') ?>"></script>
 <?= $this->endSection() ?>

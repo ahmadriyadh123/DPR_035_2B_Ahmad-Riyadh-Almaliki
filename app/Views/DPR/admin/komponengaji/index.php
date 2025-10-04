@@ -17,5 +17,5 @@
 
 <!-- Bagian script khusus halaman untuk memuat file JavaScript aplikasi mata kuliah -->
 <?= $this->section('pageScripts') ?>
-<script src="<?= base_url('js/DPR/anggota-app.js') ?>"></script>
+<script src="<?= base_url('js/DPR/komponengaji-app.js') ?>"></script>
 <?= $this->endSection() ?>
