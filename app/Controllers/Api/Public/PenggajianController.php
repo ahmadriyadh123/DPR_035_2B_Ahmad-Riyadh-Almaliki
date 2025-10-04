@@ -26,44 +26,83 @@ class PenggajianController extends BaseController
 
     /**
      * Get all penggajian data (summary view)
+     * Uses the same fresh data approach as Admin controller
      */
     public function index()
     {
         try {
+            // DEBUG: Log that public API is being called
+            log_message('info', '[PUBLIC API] Public\PenggajianController::index() called - USING SAME DATA AS ADMIN');
+            
             $request = service('request');
             $page = (int) ($request->getGet('page') ?? 1);
             $search = $request->getGet('search') ?? '';
-
-            // Get penggajian summary
-            $summaryData = $this->penggajianModel->getSummary();
-            $penggajianData = $summaryData['penggajian'];
-
-            // Apply search filter if provided
-            if (!empty($search)) {
-                $penggajianData = array_filter($penggajianData, function($item) use ($search) {
-                    return stripos($item['nama_anggota'], $search) !== false ||
-                           stripos($item['jabatan'], $search) !== false ||
-                           stripos((string)$item['id_anggota'], $search) !== false ||
-                           stripos((string)$item['take_home_pay'], $search) !== false;
-                });
-            }
-
-            // Apply simple pagination
             $perPage = 10;
-            $total = count($penggajianData);
-            $totalPages = ceil($total / $perPage);
-            $offset = ($page - 1) * $perPage;
-            $paginatedData = array_slice($penggajianData, $offset, $perPage);
+
+            // Use same approach as Admin controller for fresh data
+            
+            // 1. Get all anggota IDs that have penggajian data
+            $builder = $this->penggajianModel->distinct()->select('id_anggota');
+            $anggotaIdsWithPenggajian = $builder->findColumn('id_anggota') ?? [];
+
+            $penggajianData = [];
+            $pagerDetails = [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_pages' => 0,
+                'total_records' => 0
+            ];
+
+            if (!empty($anggotaIdsWithPenggajian)) {
+                $anggotaBuilder = $this->anggotaModel->whereIn('id_anggota', $anggotaIdsWithPenggajian);
+                
+                // Apply search filter if provided - same as Admin
+                if (!empty($search)) {
+                    $anggotaBuilder->groupStart()
+                        ->like('nama_depan', $search, 'both', null, true)
+                        ->orLike('nama_belakang', $search, 'both', null, true)
+                        ->orLike('jabatan', $search, 'both', null, true)
+                        ->orLike('id_anggota', $search, 'both', null, true)
+                    ->groupEnd();
+                }
+                
+                $anggotaList = $anggotaBuilder->paginate($perPage, 'default', $page);
+                
+                // Get pager details
+                if ($this->anggotaModel->pager) {
+                    $pagerDetails = [
+                        'current_page' => $this->anggotaModel->pager->getCurrentPage(),
+                        'per_page' => $this->anggotaModel->pager->getPerPage(),
+                        'total_pages' => $this->anggotaModel->pager->getPageCount(),
+                        'total_records' => $this->anggotaModel->pager->getTotal()
+                    ];
+                }
+
+                // Process each anggota using fresh data
+                foreach ($anggotaList as $anggota) {
+                    // Calculate take home pay using SAME method as admin (with cached data)
+                    $takeHomePay = $this->penggajianModel->calculateTakeHomePay($anggota->id_anggota);
+                    
+                    $namaLengkap = trim(implode(' ', array_filter([
+                        $anggota->gelar_depan ?? '', 
+                        $anggota->nama_depan ?? '', 
+                        $anggota->nama_belakang ?? '', 
+                        $anggota->gelar_belakang ?? ''
+                    ])));
+
+                    $penggajianData[] = [
+                        'id_anggota' => $anggota->id_anggota,
+                        'nama_anggota' => $namaLengkap,
+                        'jabatan' => $anggota->jabatan ?? '',
+                        'take_home_pay' => $takeHomePay,
+                    ];
+                }
+            }
 
             return $this->respond([
                 'status' => 'success',
-                'data' => $paginatedData,
-                'pagination' => [
-                    'current_page' => $page,
-                    'per_page' => $perPage,
-                    'total_pages' => $totalPages,
-                    'total_records' => $total
-                ]
+                'data' => $penggajianData,
+                'pagination' => $pagerDetails
             ]);
 
         } catch (\Exception $e) {
@@ -76,13 +115,14 @@ class PenggajianController extends BaseController
      */
     public function summary()
     {
+        // DEBUG: Log that public API summary is being called
+        log_message('info', '🌐 [PUBLIC API] Public\\PenggajianController::summary() called - SHOWING SAME DATA AS ADMIN');
+        
         return $this->index();
     }
 
     /**
      * Get single penggajian data by anggota ID
-     * 
-     * @param int $id_anggota
      */
     public function show($id_anggota)
     {
@@ -94,9 +134,9 @@ class PenggajianController extends BaseController
             }
 
             // Get penggajian details for this anggota
-            $penggajianDetail = $this->penggajianModel->getDetailByAnggota($id_anggota);
+            $penggajianDetail = $this->penggajianModel->getPenggajianDetail($id_anggota);
             
-            // Calculate take home pay
+            // Calculate take home pay using SAME method as admin (with session data)
             $takeHomePay = $this->penggajianModel->calculateTakeHomePay($id_anggota);
 
             $namaLengkap = trim(($anggota->gelar_depan ? $anggota->gelar_depan . ' ' : '') . 

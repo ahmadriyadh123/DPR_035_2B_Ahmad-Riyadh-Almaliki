@@ -16,34 +16,12 @@ class PenggajianController extends ResourceController
      */
     public function index()
     {
-        $anggotaModel = new AnggotaModel();
-        $komponenGajiModel = new KomponenGajiModel();
+        $penggajianModel = new PenggajianModel();
         
-        $page = $this->request->getVar('page') ?? 1;
-        $perPage = 10;
+        // getSummary() sudah mengintegrasikan session data tunjangan anak
+        $summaryData = $penggajianModel->getSummary();
         
-        // Ambil daftar anggota dengan pagination
-        $anggotaList = $anggotaModel->paginate($perPage, 'default', $page);
-        $penggajianData = [];
-        
-        foreach ($anggotaList as $anggota) {
-            // Ambil komponen gaji berdasarkan jabatan anggota
-            $komponenGaji = $komponenGajiModel->where('jabatan', $anggota->jabatan)->findAll();
-            
-            $penggajianData[] = [
-                'id_anggota' => $anggota->id_anggota,
-                'nama_anggota' => $anggota->nama_depan . ' ' . $anggota->nama_belakang,
-                'jabatan' => $anggota->jabatan,
-                'komponen_gaji' => $komponenGaji
-            ];
-        }
-        
-        $data = [
-            'penggajian' => $penggajianData,
-            'pager' => $anggotaModel->pager
-        ];
-        
-        return $this->respond($data);
+        return $this->respond($summaryData);
     }
 
     /**
@@ -55,10 +33,19 @@ class PenggajianController extends ResourceController
     {
         $penggajianModel = new PenggajianModel();
         
-        $data = $penggajianModel->getPenggajianDetail((int)$id);
+        // Ambil info Tunjangan Anak dari session jika ada
+        $session = session();
+        $tunjanganAnakInfo = $session->get("tunjangan_anak_{$id}");
+        
+        $data = $penggajianModel->getPenggajianDetail((int)$id, $tunjanganAnakInfo);
 
         if (!$data) {
             return $this->failNotFound('Data penggajian untuk anggota ini tidak ditemukan.');
+        }
+        
+        // Tambahkan info Tunjangan Anak ke response
+        if ($tunjanganAnakInfo) {
+            $data['tunjangan_anak_info'] = $tunjanganAnakInfo;
         }
         
         return $this->respond($data);
@@ -118,10 +105,10 @@ class PenggajianController extends ResourceController
     public function summary()
     {
         // Debug logging
-        log_message('info', 'PenggajianController::summary called');
-        log_message('info', 'Request method: ' . $this->request->getMethod());
-        log_message('info', 'Is AJAX: ' . ($this->request->hasHeader('X-Requested-With') ? 'yes' : 'no'));
-        log_message('info', 'Session isLoggedIn: ' . (session()->get('isLoggedIn') ? 'yes' : 'no'));
+        log_message('info', '🔄 [ADMIN API] PenggajianController::summary called - USING SESSION DATA');
+        log_message('info', '📊 Request method: ' . $this->request->getMethod());
+        log_message('info', '📊 Is AJAX: ' . ($this->request->hasHeader('X-Requested-With') ? 'yes' : 'no'));
+        log_message('info', '📊 Session isLoggedIn: ' . (session()->get('isLoggedIn') ? 'yes' : 'no'));
         
         $anggotaModel = new AnggotaModel();
         $penggajianModel = new PenggajianModel();
@@ -136,6 +123,7 @@ class PenggajianController extends ResourceController
             $anggotaIdsWithPenggajian = $builder->findColumn('id_anggota') ?? [];
 
             $anggotaList = [];
+            $summaryData = []; // Initialize outside the if block
             $pagerDetails = [
                 'currentPage' => (int)$page,
                 'pageCount'   => 0,
@@ -148,10 +136,10 @@ class PenggajianController extends ResourceController
                 // Tambahkan search filter jika ada
                 if (!empty($search)) {
                     $anggotaBuilder->groupStart()
-                        ->like('nama_depan', $search)
-                        ->orLike('nama_belakang', $search)
-                        ->orLike('jabatan', $search)
-                        ->orLike('id_anggota', $search)
+                        ->like('nama_depan', $search, 'both', null, true)
+                        ->orLike('nama_belakang', $search, 'both', null, true)
+                        ->orLike('jabatan', $search, 'both', null, true)
+                        ->orLike('id_anggota', $search, 'both', null, true)
                     ->groupEnd();
                 }
                 
@@ -161,32 +149,51 @@ class PenggajianController extends ResourceController
                 if ($anggotaModel->pager) {
                     $pagerDetails = $anggotaModel->pager->getDetails();
                 }
-            }
             
-            $summaryData = [];
-            foreach ($anggotaList as $anggota) {
-                $takeHomePay = $penggajianModel->calculateTakeHomePay($anggota->id_anggota);
+                // OPTIMIZATION: Batch fetch all penggajian data for current page anggota
+                $currentAnggotaIds = array_column($anggotaList, 'id_anggota');
+                $groupedPenggajian = [];
                 
-                $summaryData[] = [
-                    'id_anggota' => $anggota->id_anggota,
-                    'nama_anggota' => trim(implode(' ', array_filter([
-                        $anggota->gelar_depan ?? '', 
-                        $anggota->nama_depan ?? '', 
-                        $anggota->nama_belakang ?? '', 
-                        $anggota->gelar_belakang ?? ''
-                    ]))),
-                    'jabatan' => $anggota->jabatan ?? '',
-                    'take_home_pay' => $takeHomePay,
-                ];
-            }
+                if (!empty($currentAnggotaIds)) {
+                    // Get all penggajian data for current page anggota in one query
+                    $batchPenggajianData = $penggajianModel
+                        ->select('penggajian.*, komponen_gaji.nama_komponen, komponen_gaji.nominal')
+                        ->join('komponen_gaji', 'komponen_gaji.id_komponen_gaji = penggajian.id_komponen_gaji')
+                        ->whereIn('penggajian.id_anggota', $currentAnggotaIds)
+                        ->findAll();
+                    
+                    // Group by anggota ID for faster lookup
+                    foreach ($batchPenggajianData as $item) {
+                        $groupedPenggajian[$item->id_anggota][] = $item;
+                    }
+                }
+                
+                foreach ($anggotaList as $anggota) {
+                    // Use batch data instead of individual database calls
+                    $anggotaPenggajian = $groupedPenggajian[$anggota->id_anggota] ?? [];
+                    $takeHomePay = $this->calculateTakeHomePayFromBatch($anggota, $anggotaPenggajian);
+                    
+                    $summaryData[] = [
+                        'id_anggota' => $anggota->id_anggota,
+                        'nama_anggota' => trim(implode(' ', array_filter([
+                            $anggota->gelar_depan ?? '', 
+                            $anggota->nama_depan ?? '', 
+                            $anggota->nama_belakang ?? '', 
+                            $anggota->gelar_belakang ?? ''
+                        ]))),
+                        'jabatan' => $anggota->jabatan ?? '',
+                        'take_home_pay' => $takeHomePay,
+                    ];
+                }
 
-            // Filter berdasarkan Take Home Pay jika search berupa angka
-            if (!empty($search) && is_numeric($search)) {
-                $summaryData = array_filter($summaryData, function($item) use ($search) {
-                    return strpos((string)$item['take_home_pay'], $search) !== false ||
-                           strpos(number_format($item['take_home_pay'], 0, ',', '.'), $search) !== false;
-                });
-                $summaryData = array_values($summaryData); // Re-index array
+                // Filter berdasarkan Take Home Pay jika search berupa angka
+                if (!empty($search) && is_numeric($search)) {
+                    $summaryData = array_filter($summaryData, function($item) use ($search) {
+                        return strpos((string)$item['take_home_pay'], $search) !== false ||
+                               strpos(number_format($item['take_home_pay'], 0, ',', '.'), $search) !== false;
+                    });
+                    $summaryData = array_values($summaryData); // Re-index array
+                }
             }
 
             return $this->respond([
@@ -220,57 +227,72 @@ class PenggajianController extends ResourceController
      */
     public function create()
     {
-        log_message('info', 'PenggajianController::create called');
-        log_message('info', 'Request method: ' . $this->request->getMethod());
+        log_message('info', '🔄 PenggajianController::create called');
+        log_message('info', '📊 Request method: ' . $this->request->getMethod());
         
         $model = new PenggajianModel();
         $input = $this->request->getBody();
-
-        log_message('info', 'Raw input data: ' . $input);
+        
+        log_message('info', '📥 Raw input data: ' . $input);
         
         $data = json_decode($input, true);
         
         if (!$data) {
-            log_message('error', 'Invalid JSON data received');
+            log_message('error', '❌ Invalid JSON data received');
             return $this->fail('Data JSON tidak valid', 400);
         }
-
-        log_message('info', 'Decoded data: ' . print_r($data, true));
+        
+        log_message('info', '📋 Decoded data: ' . print_r($data, true));
 
         // Selalu perbarui CSRF hash di setiap response
         $csrf_hash = csrf_hash();
 
         $id_anggota = $data['id_anggota'] ?? null;
         $id_komponen = $data['id_komponen'] ?? [];
-
-        log_message('info', 'ID Anggota: ' . $id_anggota);
-        log_message('info', 'ID Komponen: ' . print_r($id_komponen, true));
+        $tunjangan_anak_info = $data['tunjangan_anak_info'] ?? null;
+        
+        log_message('info', '👤 ID Anggota: ' . $id_anggota);
+        log_message('info', '💰 ID Komponen: ' . print_r($id_komponen, true));
+        log_message('info', '👶 Tunjangan Anak Info: ' . print_r($tunjangan_anak_info, true));
 
         // Validasi input dasar
         if (empty($id_anggota)) {
-            log_message('error', 'ID Anggota tidak boleh kosong');
+            log_message('error', '❌ ID Anggota tidak boleh kosong');
             return $this->fail('ID Anggota harus dipilih.', 400);
         }
         
         if (empty($id_komponen) || !is_array($id_komponen)) {
-            log_message('error', 'Komponen gaji tidak valid: ' . print_r($id_komponen, true));
+            log_message('error', '❌ Komponen gaji tidak valid: ' . print_r($id_komponen, true));
             return $this->fail('Minimal satu komponen gaji harus dipilih.', 400);
         }
 
         try {
-            log_message('info', 'Attempting to save data...');
-            // Panggil metode di model untuk menyimpan data
+            log_message('info', '💾 Attempting to save data...');
+            
+            // Simpan info Tunjangan Anak ke session dan cache jika ada
+            if ($tunjangan_anak_info) {
+                $session = session();
+                $session->set("tunjangan_anak_{$id_anggota}", $tunjangan_anak_info);
+                
+                // Save to persistent cache as well
+                $model = new PenggajianModel();
+                $model->getTunjanganAnakInfo($id_anggota); // This will save to cache
+                
+                log_message('info', '👶 Tunjangan Anak info saved to session and cache');
+            }
+            
+            // Panggil metode di model untuk menyimpan data (tanpa parameter tambahan)
             $model->assignKomponenToAnggota($id_anggota, $id_komponen);
             
-            log_message('info', 'Data penggajian berhasil disimpan');
+            log_message('info', '✅ Data penggajian berhasil disimpan');
             return $this->respondCreated([
                 'message' => 'Data penggajian berhasil disimpan.',
                 'csrf_hash' => $csrf_hash
             ]);
 
         } catch (\Exception $e) {
-            log_message('error', 'Error saving penggajian: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            log_message('error', '💥 Error saving penggajian: ' . $e->getMessage());
+            log_message('error', '🔍 Stack trace: ' . $e->getTraceAsString());
             // Tangani error, termasuk dari validasi di model
             return $this->fail([
                 'error' => $e->getMessage(),
@@ -294,6 +316,7 @@ class PenggajianController extends ResourceController
         $csrf_hash = csrf_hash();
 
         $id_komponen = $data['id_komponen'] ?? [];
+        $tunjangan_anak_info = $data['tunjangan_anak_info'] ?? null;
 
         // Validasi input dasar
         if (empty($id) || empty($id_komponen)) {
@@ -301,6 +324,18 @@ class PenggajianController extends ResourceController
         }
 
         try {
+            // Simpan info Tunjangan Anak ke session dan cache jika ada
+            if ($tunjangan_anak_info) {
+                $session = session();
+                $session->set("tunjangan_anak_{$id}", $tunjangan_anak_info);
+                
+                // Save to persistent cache as well
+                $penggajianModel = new PenggajianModel();
+                $penggajianModel->getTunjanganAnakInfo($id); // This will save to cache
+                
+                log_message('info', '👶 Tunjangan Anak info updated in session and cache for anggota: ' . $id);
+            }
+            
             // Panggil metode di model untuk mengupdate data
             $model->assignKomponenToAnggota((int)$id, $id_komponen);
             
@@ -375,5 +410,51 @@ class PenggajianController extends ResourceController
                 'csrf_hash' => $csrf_hash
             ], 500);
         }
+    }
+    
+    /**
+     * Optimized calculation method that works with pre-fetched data
+     */
+    private function calculateTakeHomePayFromBatch($anggota, $penggajianData): float
+    {
+        $totalGaji = 0;
+        $session = session();
+        
+        foreach ($penggajianData as $komponen) {
+            $nama_komponen = strtolower($komponen->nama_komponen);
+            $nominal = (float) $komponen->nominal;
+
+            // Tunjangan Istri/Suami rule
+            if (str_contains($nama_komponen, 'istri') || str_contains($nama_komponen, 'suami')) {
+                if (strtolower($anggota->status_pernikahan) === 'kawin') {
+                    $totalGaji += $nominal;
+                }
+                continue;
+            }
+
+            // Tunjangan Anak rule - use session data if available, same logic as calculateTakeHomePay
+            if (str_contains($nama_komponen, 'anak')) {
+                // Check if session data exists for this anggota and komponen
+                $tunjanganAnakInfo = $session->get("tunjangan_anak_{$anggota->id_anggota}");
+                
+                if ($tunjanganAnakInfo && $tunjanganAnakInfo['komponen_id'] == $komponen->id_komponen_gaji) {
+                    // Use session data - exactly like in calculateTakeHomePay
+                    $jumlah_anak_dihitung = $tunjanganAnakInfo['jumlah_dihitung'];
+                    $calculated = $nominal * $jumlah_anak_dihitung;
+                    $totalGaji += $calculated;
+                } else {
+                    // Default behavior: use actual jumlah_anak from database or fallback to 0
+                    $jumlah_anak = (int) ($anggota->jumlah_anak ?? 0);
+                    $calculated = $nominal * $jumlah_anak;
+                    $totalGaji += $calculated;
+                }
+                continue;
+            }
+
+            // Regular components
+            $totalGaji += $nominal;
+        }
+
+        return $totalGaji;
     }
 }

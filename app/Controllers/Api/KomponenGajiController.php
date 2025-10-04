@@ -167,17 +167,50 @@ class KomponenGajiController extends ResourceController
      */
     public function delete($id = null)
     {
+        log_message('info', 'KomponenGajiController::delete called with ID: ' . ($id ?? 'null'));
+        
         $komponenGajiModel = new KomponenGajiModel();
         
-        if (!$komponenGajiModel->find($id)) {
+        // Validate ID parameter
+        if ($id === null || !is_numeric($id)) {
+            log_message('error', 'Invalid ID parameter in delete: ' . ($id ?? 'null'));
+            return $this->fail('ID komponen gaji tidak valid.', 400);
+        }
+        
+        // Check if komponen exists
+        $komponen = $komponenGajiModel->find($id);
+        if (!$komponen) {
+            log_message('error', 'Komponen gaji not found with ID: ' . $id);
             return $this->failNotFound('Komponen gaji tidak ditemukan.');
         }
         
+        // Check if komponen is still referenced in penggajian table
+        $penggajianModel = new \App\Models\DPR\PenggajianModel();
+        $referencesCount = $penggajianModel->where('id_komponen_gaji', $id)->countAllResults();
+        
+        if ($referencesCount > 0) {
+            log_message('warning', "Cannot delete komponen gaji ID {$id}: still referenced by {$referencesCount} penggajian records");
+            return $this->fail(
+                "Komponen gaji tidak dapat dihapus karena masih digunakan dalam {$referencesCount} data penggajian. " .
+                "Hapus terlebih dahulu data penggajian yang menggunakan komponen ini.",
+                409 // Conflict status code
+            );
+        }
+        
         try {
-            $komponenGajiModel->delete($id);
-            return $this->respondDeleted(['message' => 'Komponen gaji berhasil dihapus.']);
+            log_message('info', 'Attempting to delete komponen gaji with ID: ' . $id);
+            $result = $komponenGajiModel->delete($id);
+            
+            if ($result) {
+                log_message('info', 'Successfully deleted komponen gaji with ID: ' . $id);
+                return $this->respondDeleted(['message' => 'Komponen gaji berhasil dihapus.']);
+            } else {
+                log_message('error', 'Failed to delete komponen gaji with ID: ' . $id);
+                return $this->fail('Gagal menghapus komponen gaji.', 500);
+            }
         } catch (\Exception $e) {
-            return $this->fail('Gagal menghapus komponen gaji: ' . $e->getMessage());
+            log_message('error', 'Exception in delete komponen gaji: ' . $e->getMessage());
+            return $this->fail('Gagal menghapus komponen gaji: ' . $e->getMessage(), 500);
         }
     }
 }

@@ -79,9 +79,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Helper function to get add button for admin only
     const getAddButton = () => {
+        console.log('🔍 getAddButton called');
+        console.log('🔍 Current user role:', window.userRole);
+        console.log('🔍 Is user admin?', isUserAdmin());
+        
         if (isUserAdmin()) {
+            console.log('✅ User is admin - showing add button');
             return '<button class="btn btn-primary" onclick="handleAddButtonClick()">Tambah Data Penggajian</button>';
         } else {
+            console.log('⚠️ User is not admin - showing read-only message');
             // Show info for non-admin users
             return '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Anda memiliki akses baca saja. Untuk melakukan perubahan data, hubungi administrator.</div>';
         }
@@ -599,17 +605,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT HANDLERS ---
 
     async function handleAddButtonClick(errorMessage = null) {
-        const anggotaList = await fetchAvailableAnggota();
-        renderAddEditForm({ anggotaList });
-        if (errorMessage) {
-            // Sisipkan pesan error di atas form
-            const formCard = document.querySelector('#penggajian-form').closest('.card');
-            if (formCard) {
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'alert alert-danger';
-                errorDiv.innerHTML = errorMessage;
-                formCard.parentNode.insertBefore(errorDiv, formCard);
+        console.log('🆕 handleAddButtonClick called');
+        console.log('🔍 Current user role:', window.userRole);
+        console.log('🔍 Is user admin?', isUserAdmin());
+        
+        try {
+                console.log('📥 Fetching available anggota...');
+            const anggotaList = await fetchAvailableAnggota();
+            console.log('✅ Available anggota:', anggotaList);
+            
+            console.log('🎨 Rendering add/edit form...');
+            renderAddEditForm({ anggotaList });
+            
+            if (errorMessage) {
+                console.log('⚠️ Adding error message:', errorMessage);
+                // Sisipkan pesan error di atas form
+                const formCard = document.querySelector('#penggajian-form').closest('.card');
+                if (formCard) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger';
+                    errorDiv.innerHTML = errorMessage;
+                    formCard.parentNode.insertBefore(errorDiv, formCard);
+                }
             }
+        } catch (error) {
+            console.error('❌ Error in handleAddButtonClick:', error);
+            showError('Gagal memuat form tambah penggajian: ' + error.message);
         }
     }
 
@@ -679,11 +700,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Jika ada data Tunjangan Anak, tambahkan ke form data
         if (window.tunjanganAnakData && id_komponen.includes(window.tunjanganAnakData.komponenId)) {
+            console.log('👶 Adding tunjangan anak data:', window.tunjanganAnakData);
             formData.tunjangan_anak_info = {
                 komponen_id: window.tunjanganAnakData.komponenId,
                 jumlah_anak: window.tunjanganAnakData.jumlahAnak,
                 jumlah_dihitung: window.tunjanganAnakData.jumlahDihitung
             };
+            console.log('👶 Final tunjangan_anak_info:', formData.tunjangan_anak_info);
+        } else {
+            console.log('👶 No tunjangan anak data found or not selected');
+            console.log('👶 window.tunjanganAnakData:', window.tunjanganAnakData);
+            console.log('👶 id_komponen:', id_komponen);
         }
 
         console.log('📝 Form submitted:', { id_anggota, id_komponen, penggajianId, isEdit, formData });
@@ -779,7 +806,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Restore data Tunjangan Anak jika ada
                     if (detailData.tunjangan_anak_info) {
-                        window.tunjanganAnakData = detailData.tunjangan_anak_info;
+                        // Normalize property names untuk consistency
+                        window.tunjanganAnakData = {
+                            komponenId: detailData.tunjangan_anak_info.komponen_id,
+                            komponen_id: detailData.tunjangan_anak_info.komponen_id,
+                            jumlahAnak: detailData.tunjangan_anak_info.jumlah_anak,
+                            jumlah_anak: detailData.tunjangan_anak_info.jumlah_anak,
+                            jumlahDihitung: detailData.tunjangan_anak_info.jumlah_dihitung,
+                            jumlah_dihitung: detailData.tunjangan_anak_info.jumlah_dihitung
+                        };
                         
                         // Update label checkbox Tunjangan Anak
                         setTimeout(() => {
@@ -805,6 +840,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchPenggajianSummary();
     }
 
+    // --- EXPOSE FUNCTIONS TO GLOBAL SCOPE FOR ONCLICK HANDLERS ---
+    window.handleAddButtonClick = handleAddButtonClick;
+
     // --- INISIALISASI ---
-    // Application initialization moved to DOMContentLoaded event listener above
 });
