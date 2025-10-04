@@ -35,6 +35,8 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'auth'          => \App\Filters\AuthFilter::class,
+        'roleapi'       => \App\Filters\RoleBasedFilter::class,
+        'apiauth'       => \App\Filters\ApiAuthFilter::class,
     ];
 
     /**
@@ -74,7 +76,7 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             'csrf' => ['except' => ['api/*', 'login']],
-            'auth' => ['except' => ['login', 'login/*']],
+            'auth' => ['except' => ['login', 'login/*', 'api/*', 'debug-session']],
         ],
         'after' => [
             // 'honeypot',

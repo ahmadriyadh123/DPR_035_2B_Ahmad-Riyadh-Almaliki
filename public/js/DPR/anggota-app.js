@@ -237,8 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 status_pernikahan: document.getElementById('form-status-pernikahan').value
             };
 
-            console.log('Sending data:', formData); // Debug log
-            console.log('Method:', method, 'URL:', url); // Debug log
+            console.log('🚀 Sending data:', formData); // Debug log
+            console.log('📡 Method:', method, 'URL:', url); // Debug log
 
             try {
                 const response = await fetchData(url, {
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire('Berhasil!', response.message, 'success');
                 loadMembers();
             } catch (error) {
-                console.error('Error submitting form:', error); // Debug log
+                console.error('❌ Error submitting form:', error); // Debug log
                 Swal.fire('Error!', error.message, 'error');
             }
         }

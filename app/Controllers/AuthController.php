@@ -17,7 +17,10 @@ class AuthController extends BaseController
      */
     public function login()
     {
-        // Jika sudah login, redirect ke home
+        /**
+         * Cek status login pengguna.
+         * Redirect berdasarkan role jika sudah login.
+         */
         if (session()->get('isLoggedIn')) {
             $role = session()->get('user_role');
             if ($role === 'admin') {
@@ -30,7 +33,6 @@ class AuthController extends BaseController
         $data = [
             'title' => 'Login'
         ];
-        // Kita tidak akan menggunakan template utama untuk halaman login
         return view('login_view', $data);
     }
 
@@ -42,44 +44,57 @@ class AuthController extends BaseController
      */
     public function processLogin()
     {
+        /**
+         * Inisialisasi session dan model user.
+         * Ambil input username dan password dari request.
+         */
         $session = session();
-        $model = new \App\Models\UserModel();
-        $username = $this->request->getVar('username');
-        $password = $this->request->getVar('password');
+        $userModel = new \App\Models\UserModel();
 
-        // Debug: log request data
-        log_message('debug', 'Login attempt for username: ' . $username);
-        
-        if (empty($username) || empty($password)) {
-            $session->setFlashdata('msg', 'Username dan password harus diisi.');
+        $username = $this->request->getPost('username');
+        $password = $this->request->getPost('password');
+
+        log_message('debug', 'Mencoba login untuk username: ' . $username);
+
+        /**
+         * Cari user berdasarkan username.
+         */
+        $user = $userModel->where('username', $username)->first();
+
+        if ($user) {
+            log_message('debug', 'User ditemukan: ' . json_encode($user));
+
+            /**
+             * Verifikasi password dan set session jika valid.
+             * Redirect ke dashboard jika berhasil.
+             */
+            if (password_verify($password, $user->password)) {
+                $sessionData = [
+                    'user_id'    => $user->id_pengguna,
+                    'user_name'  => $user->username,
+                    'user_role'  => $user->role,
+                    'isLoggedIn' => TRUE
+                ];
+
+                $session->set($sessionData);
+
+                log_message('debug', 'Login BERHASIL. Data sesi diatur: ' . json_encode($session->get()));
+
+                return redirect()->to('/dashboard');
+            } else {
+                log_message('warning', 'Login GAGAL: Password salah untuk username: ' . $username);
+                $session->setFlashdata('error', 'Username atau Password salah.');
+                return redirect()->to('/login');
+            }
+        } else {
+            /**
+             * Handle kasus user tidak ditemukan.
+             * Set error flashdata dan redirect ke login.
+             */
+            log_message('warning', 'Login GAGAL: Username tidak ditemukan: ' . $username);
+            $session->setFlashdata('error', 'Username atau Password salah.');
             return redirect()->to('/login');
         }
-
-        $user = $model->where('username', $username)->first();
-
-        if ($user && password_verify($password, $user->password)) {
-            $ses_data = [
-                'user_id'    => $user->id_pengguna,
-                'user_name'  => $user->username,
-                'user_role'  => $user->role,
-                'isLoggedIn' => true,
-            ];
-            $session->set($ses_data);
-
-            log_message('debug', 'Login successful. Session data: ' . json_encode($session->get()));
-
-            if ($user->role === 'admin') {
-                return redirect()->to('/admin/dpr/anggota');
-            } elseif ($user->role === 'dpr') {
-                return redirect()->to('/dpr/anggota');
-            } else {
-                return redirect()->to('/dashboard');
-            }
-        }
-        
-        log_message('error', 'Login failed for username: ' . $username);
-        $session->setFlashdata('msg', 'Username atau Password salah.');
-        return redirect()->to('/login');
     }
 
     /**
@@ -87,6 +102,9 @@ class AuthController extends BaseController
      */
     public function logout()
     {
+        /**
+         * Hancurkan session dan redirect ke login.
+         */
         session()->destroy();
         return redirect()->to('/login');
     }
