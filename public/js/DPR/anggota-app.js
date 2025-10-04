@@ -5,10 +5,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const appContent = document.getElementById('app-content');
     const modalPlaceholder = document.getElementById('modal-placeholder');
 
+    // Fungsi utilitas untuk melakukan fetch ke API dengan penanganan CSRF token
+    async function fetchData(url, options = {}) {
+        const csrfTokenNameMeta = document.querySelector('meta[name="X-CSRF-TOKEN"]');
+        const csrfTokenValueMeta = document.querySelector('meta[name="X-CSRF-HEADER"]');
+        if (!csrfTokenNameMeta || !csrfTokenValueMeta) {
+            throw new Error('CSRF token tidak ditemukan.');
+        }
+        const csrfTokenName = csrfTokenNameMeta.getAttribute('content');
+        const csrfTokenValue = csrfTokenValueMeta.getAttribute('content');
+        const headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json',
+            [csrfTokenName]: csrfTokenValue,
+            ...options.headers,
+        };
+        const fetchOptions = { ...options, headers };
+        const response = await fetch(url, fetchOptions);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.message || `Gagal mengambil data dari server (Status: ${response.status})`;
+            throw new Error(errorMessage);
+        }
+        const newToken = response.headers.get('X-CSRF-HEADER');
+        if (newToken) {
+             csrfTokenValueMeta.setAttribute('content', newToken);
+        }
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            return await response.json();
+        }
+        return {}; // Kembalikan objek kosong jika tidak ada JSON
+    }
+
     // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
 
     // Fungsi untuk merender daftar anggota beserta pagination
-    function renderAnggotaList(data) {
+    function renderMemberList(data) {
         const { anggota, pager } = data;
         let anggotaRows = '';
         if (anggota && anggota.length > 0) {
@@ -135,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (event.target.classList.contains('edit-btn')) {
-            const memberId = event.target.dataset.id_anggota;
+            const memberId = event.target.dataset.id;
             try {
                 const memberData = await fetchData(`/api/anggota/${memberId}`);
                 renderMemberFormModal('Edit Anggota', memberData);
@@ -145,8 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (event.target.classList.contains('delete-btn')) {
-            const memberId = event.target.dataset.id_anggota;
-            const memberName = event.target.dataset.nama_depan + ' ' + event.target.dataset.nama_belakang;
+            const memberId = event.target.dataset.id;
+            const memberName = event.target.dataset.name;
 
             const result = await Swal.fire({
                 title: 'Apakah Anda yakin?',
