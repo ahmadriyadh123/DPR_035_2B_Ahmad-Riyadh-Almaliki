@@ -165,6 +165,13 @@ class PenggajianModel extends Model
         $totalGaji = 0;
 
         /**
+         * Get tunjangan anak info from cache or session if not provided
+         */
+        if (!$tunjangan_anak_info) {
+            $tunjangan_anak_info = $this->getTunjanganAnakInfo($id_anggota);
+        }
+
+        /**
          * Iterasi dan hitung total gaji berdasarkan aturan.
          */
         foreach ($assignedKomponen as $komponen) {
@@ -283,5 +290,76 @@ class PenggajianModel extends Model
             'komponen_gaji' => $assignedKomponen,
             'take_home_pay' => $takeHomePay
         ];
+    }
+
+    /**
+     * Save tunjangan anak data to persistent storage (file cache)
+     */
+    private function saveTunjanganAnakCache(int $id_anggota, array $tunjangan_anak_info): void
+    {
+        $cacheDir = WRITEPATH . 'cache/tunjangan_anak/';
+        
+        // Create directory if it doesn't exist
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        
+        $cacheFile = $cacheDir . "anggota_{$id_anggota}.json";
+        
+        // Add timestamp for tracking
+        $data = array_merge($tunjangan_anak_info, [
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        file_put_contents($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
+        
+        log_message('info', "💾 Tunjangan anak data saved to cache for anggota {$id_anggota}");
+    }
+    
+    // Public method for testing cache functionality
+    public function testSaveTunjanganAnakCache(int $id_anggota, array $tunjangan_anak_info): void
+    {
+        $this->saveTunjanganAnakCache($id_anggota, $tunjangan_anak_info);
+    }
+
+    /**
+     * Load tunjangan anak data from persistent storage (file cache)
+     */
+    private function loadTunjanganAnakCache(int $id_anggota): ?array
+    {
+        $cacheFile = WRITEPATH . 'cache/tunjangan_anak/' . "anggota_{$id_anggota}.json";
+        
+        if (!file_exists($cacheFile)) {
+            return null;
+        }
+        
+        $data = json_decode(file_get_contents($cacheFile), true);
+        
+        if ($data) {
+            log_message('info', "📁 Tunjangan anak data loaded from cache for anggota {$id_anggota}");
+            return $data;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get tunjangan anak info - prioritize session, fallback to cache
+     */
+    public function getTunjanganAnakInfo(int $id_anggota): ?array
+    {
+        // First, try to get from session (for current admin session)
+        $session = session();
+        $sessionData = $session->get("tunjangan_anak_{$id_anggota}");
+        
+        if ($sessionData) {
+            // Update cache with session data
+            $this->saveTunjanganAnakCache($id_anggota, $sessionData);
+            return $sessionData;
+        }
+        
+        // Fallback to cache (for persistent storage)
+        return $this->loadTunjanganAnakCache($id_anggota);
     }
 }

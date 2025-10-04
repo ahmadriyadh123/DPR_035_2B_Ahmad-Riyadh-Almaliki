@@ -11,5 +11,5 @@
 
 <?= $this->section('pageScripts') ?>
 <script src="<?= base_url('js/utils.js') ?>"></script>
-<script src="<?= base_url('js/DPR/Penggajian-app.js') ?>"></script>
+<script src="<?= base_url('js/DPR/komponengaji-app.js') ?>"></script>
 <?= $this->endSection() ?>
