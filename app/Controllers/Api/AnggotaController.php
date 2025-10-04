@@ -8,7 +8,7 @@ use App\Models\DPR\AnggotaModel;
 class AnggotaController extends ResourceController
 {
     /**
-     * Mengambil daftar semua anggota dengan pagination.
+     * Mengambil daftar semua anggota dengan pagination dan search.
      * Method: GET
      * URL: /api/anggota
      */
@@ -16,12 +16,26 @@ class AnggotaController extends ResourceController
     {
         $anggotaModel = new AnggotaModel();
         
-        $page = $this->request->getVar('page') ?? 1;
+        $page = $_GET['page'] ?? 1;
+        $search = $_GET['search'] ?? '';
         $perPage = 10;
+        
+        // Jika ada parameter search, lakukan filtering
+        if (!empty($search)) {
+            $anggotaModel->groupStart()
+                ->like('CAST(id_anggota AS TEXT)', $search, 'both', null, true)
+                ->orLike('nama_depan', $search, 'both', null, true)
+                ->orLike('nama_belakang', $search, 'both', null, true)
+                ->orLike('gelar_depan', $search, 'both', null, true)
+                ->orLike('gelar_belakang', $search, 'both', null, true)
+                ->orLike('CAST(jabatan AS TEXT)', $search, 'both', null, true)
+                ->orLike('CAST(status_pernikahan AS TEXT)', $search, 'both', null, true)
+                ->groupEnd();
+        }
         
         $data = [
             'anggota' => $anggotaModel->paginate($perPage, 'default', $page),
-            'pager' => $anggotaModel->pager
+            'pager' => $anggotaModel->pager->getDetails()
         ];
         
         return $this->respond($data);

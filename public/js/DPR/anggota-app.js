@@ -5,50 +5,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const appContent = document.getElementById('app-content');
     const modalPlaceholder = document.getElementById('modal-placeholder');
 
-    // Fungsi utilitas untuk melakukan fetch ke API dengan penanganan CSRF token
-    async function fetchData(url, options = {}) {
-        const csrfTokenNameMeta = document.querySelector('meta[name="X-CSRF-TOKEN"]');
-        const csrfTokenValueMeta = document.querySelector('meta[name="X-CSRF-HEADER"]');
-        if (!csrfTokenNameMeta || !csrfTokenValueMeta) {
-            throw new Error('CSRF token tidak ditemukan.');
+    // Cek apakah utils.js sudah dimuat
+    if (typeof fetchData === 'undefined') {
+        console.error('ERROR: utils.js tidak dimuat! Pastikan utils.js dimuat sebelum script ini.');
+        if (appContent) {
+            appContent.innerHTML = '<div class="alert alert-danger">Error: utils.js tidak dimuat!</div>';
         }
-        const csrfTokenName = csrfTokenNameMeta.getAttribute('content');
-        const csrfTokenValue = csrfTokenValueMeta.getAttribute('content');
-        const headers = {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfTokenValue,
-            ...options.headers,
-        };
-        const fetchOptions = { ...options, headers };
-        
-        console.log('CSRF Token:', csrfTokenValue); // Debug log
-        console.log('Request:', url, fetchOptions); // Debug log
-        
-        const response = await fetch(url, fetchOptions);
-        
-        console.log('Response status:', response.status); // Debug log
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const errorMessage = errorData.message || `Gagal mengambil data dari server (Status: ${response.status})`;
-            throw new Error(errorMessage);
-        }
-        const newToken = response.headers.get('X-CSRF-TOKEN');
-        if (newToken) {
-             csrfTokenValueMeta.setAttribute('content', newToken);
-        }
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            return await response.json();
-        }
-        return {}; // Kembalikan objek kosong jika tidak ada JSON
+        return;
     }
 
     // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
 
     // Fungsi untuk merender daftar anggota beserta pagination
     function renderMemberList(data) {
+        // Simpan nilai search yang sedang diketik sebelum re-render
+        const currentSearchValue = document.getElementById('search-input')?.value || '';
+        
         const { anggota, pager } = data;
         let anggotaRows = '';
         if (anggota && anggota.length > 0) {
@@ -91,13 +63,31 @@ document.addEventListener('DOMContentLoaded', () => {
         appContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2>Kelola Anggota</h2>
-                <button class="btn btn-primary add-member-btn">Tambah Anggota</button>
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control" id="search-input" placeholder="Cari ID, nama, jabatan, atau status..." style="width: 300px;">
+                    <button class="btn btn-secondary" id="clear-search-btn">Clear</button>
+                    <button class="btn btn-primary add-member-btn">Tambah Anggota</button>
+                </div>
             </div>
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Nama Depan</th><th>Nama Belakang</th><th>Gelar Depan</th><th>Gelar Belakang</th><th>Jabatan</th><th>Status Pernikahan</th><th>Aksi</th></tr></thead>
-                <tbody>${anggotaRows}</tbody>
-            </table>
-            ${paginationHtml}`;
+            <div class="card">
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead><tr><th>ID</th><th>Nama Depan</th><th>Nama Belakang</th><th>Gelar Depan</th><th>Gelar Belakang</th><th>Jabatan</th><th>Status Pernikahan</th><th>Aksi</th></tr></thead>
+                        <tbody>${anggotaRows}</tbody>
+                    </table>
+                    ${paginationHtml}
+                </div>
+            </div>`;
+            
+        // Kembalikan nilai search setelah re-render
+        setTimeout(() => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput && currentSearchValue) {
+                searchInput.value = currentSearchValue;
+                // Set cursor di akhir teks
+                searchInput.setSelectionRange(currentSearchValue.length, currentSearchValue.length);
+            }
+        }, 0);
     }
 
     // Fungsi untuk merender modal form tambah/edit anggota
@@ -173,9 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNGSI UTAMA & EVENT HANDLING ---
 
     // Fungsi untuk memuat daftar anggota dari API
-    async function loadMembers(page = 1) {
+    async function loadMembers(page = 1, search = '') {
         try {
-            const data = await fetchData(`/api/anggota?page=${page}`);
+            let url = `/api/anggota?page=${page}`;
+            if (search.trim()) {
+                url += `&search=${encodeURIComponent(search.trim())}`;
+            }
+            const data = await fetchData(url);
             renderMemberList(data);
         } catch (error) {
             appContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
@@ -206,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await Swal.fire({
                 title: 'Apakah Anda yakin?',
                 html: `Anda akan menghapus anggota: <b>${memberName}</b>`,
+                icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 confirmButtonText: 'Ya, hapus!'
@@ -255,8 +250,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire('Berhasil!', response.message, 'success');
                 loadMembers();
             } catch (error) {
-                console.error('❌ Error submitting form:', error); // Debug log
+                console.error('Error submitting form:', error); // Debug log
                 Swal.fire('Error!', error.message, 'error');
+            }
+        }
+    });
+
+    // Event handler untuk search input (menggunakan debounce)
+    appContent.addEventListener('input', (event) => {
+        if (event.target.id === 'search-input') {
+            // Debounce search untuk menghindari terlalu banyak request
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                const searchValue = event.target.value;
+                loadMembers(1, searchValue);
+            }, 500);
+        }
+    });
+
+    // Event handler untuk clear search button
+    appContent.addEventListener('click', (event) => {
+        if (event.target.id === 'clear-search-btn') {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.value = '';
+                loadMembers(1, '');
             }
         }
     });
