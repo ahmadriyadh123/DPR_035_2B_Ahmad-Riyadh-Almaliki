@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Akademik;
 
-use App\Models\CourseModel;
-use App\Models\StudentModel; // Tambahkan ini
-use App\Models\TakeModel;    // Ubah dari EnrollmentModel
+use App\Controllers\BaseController;
+use App\Models\Akademik\CourseModel;
+use App\Models\Akademik\StudentModel;
+use App\Models\Akademik\TakeModel;   
 
 class CourseController extends BaseController
 {

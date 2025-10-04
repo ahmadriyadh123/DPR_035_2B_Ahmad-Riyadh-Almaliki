@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Controllers\Api;
+namespace App\Controllers\Akademik\Api;
 
 use CodeIgniter\RESTful\ResourceController;
 use App\Models\UserModel;
-use App\Models\StudentModel;
-use App\Models\TakeModel;
+use App\Models\Akademik\StudentModel;
+use App\Models\Akademik\TakeModel;
 
 class StudentController extends ResourceController
 {
@@ -83,7 +83,7 @@ class StudentController extends ResourceController
             return $this->fail('Semua field harus diisi.', 400);
         }
 
-        // Siapkan data untuk tabel 'users'
+        // Siapkan data untuk tabel 'pengguna'
         $userData = [
             'username'  => $json->username,
             'full_name' => $json->full_name,
@@ -119,7 +119,7 @@ class StudentController extends ResourceController
 
         $json = $this->request->getJSON();
 
-        // Data untuk tabel users
+        // Data untuk tabel pengguna
         $userData = [
             'username'  => $json->username,
             'full_name' => $json->full_name,

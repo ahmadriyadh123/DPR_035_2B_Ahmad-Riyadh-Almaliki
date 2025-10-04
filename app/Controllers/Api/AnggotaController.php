@@ -16,7 +16,7 @@ class AnggotaController extends ResourceController
     {
         $anggotaModel = new AnggotaModel();
         
-        $page = $this->request->getGet('page') ?? 1;
+        $page = $this->request->getVar('page') ?? 1;
         $perPage = 10;
         
         $data = [
@@ -41,7 +41,7 @@ class AnggotaController extends ResourceController
             return $this->failNotFound('Anggota tidak ditemukan.');
         }
         
-        return $this->respond($anggota);
+        return $this->respond((array)$anggota);
     }
 
     /**
@@ -52,27 +52,33 @@ class AnggotaController extends ResourceController
     public function create()
     {
         $anggotaModel = new AnggotaModel();
-        $json = $this->request->getJSON();
+        $input = $this->request->getBody();
+        $json = json_decode($input, true);
+        
+        if (!$json) {
+            return $this->fail('Invalid JSON data', 400);
+        }
         
         $data = [
-            'nama_depan' => $json->nama_depan ?? '',
-            'nama_belakang' => $json->nama_belakang ?? '',
-            'gelar_depan' => $json->gelar_depan ?? '',
-            'gelar_belakang' => $json->gelar_belakang ?? '',
-            'jabatan' => $json->jabatan ?? '',
-            'status_pernikahan' => $json->status_pernikahan ?? ''
+            'nama_depan' => $json['nama_depan'] ?? '',
+            'nama_belakang' => $json['nama_belakang'] ?? '',
+            'gelar_depan' => $json['gelar_depan'] ?? '',
+            'gelar_belakang' => $json['gelar_belakang'] ?? '',
+            'jabatan' => $json['jabatan'] ?? '',
+            'status_pernikahan' => $json['status_pernikahan'] ?? 'Belum Kawin'
         ];
 
         // Validasi sederhana
         if (empty($data['nama_depan']) || empty($data['nama_belakang'])) {
-            return $this->fail('Nama depan dan nama belakang harus diisi.');
+            return $this->fail('Nama depan dan nama belakang harus diisi.', 400);
         }
 
         try {
             $anggotaModel->insert($data);
             return $this->respondCreated(['message' => 'Anggota berhasil ditambahkan.']);
         } catch (\Exception $e) {
-            return $this->fail('Gagal menambahkan anggota: ' . $e->getMessage());
+            log_message('error', 'Create anggota error: ' . $e->getMessage());
+            return $this->fail('Gagal menambahkan anggota: ' . $e->getMessage(), 500);
         }
     }
 
@@ -83,32 +89,49 @@ class AnggotaController extends ResourceController
      */
     public function update($id = null)
     {
+        log_message('info', 'Update anggota called with ID: ' . $id);
+        
         $anggotaModel = new AnggotaModel();
-        $json = $this->request->getJSON();
+        $input = $this->request->getBody();
+        
+        log_message('info', 'Raw input: ' . $input);
+        
+        $json = json_decode($input, true);
+        
+        if (!$json) {
+            log_message('error', 'Invalid JSON data received');
+            return $this->fail('Invalid JSON data', 400);
+        }
+        
+        log_message('info', 'Decoded JSON: ' . print_r($json, true));
         
         if (!$anggotaModel->find($id)) {
             return $this->failNotFound('Anggota tidak ditemukan.');
         }
         
         $data = [
-            'nama_depan' => $json->nama_depan ?? '',
-            'nama_belakang' => $json->nama_belakang ?? '',
-            'gelar_depan' => $json->gelar_depan ?? '',
-            'gelar_belakang' => $json->gelar_belakang ?? '',
-            'jabatan' => $json->jabatan ?? '',
-            'status_pernikahan' => $json->status_pernikahan ?? ''
+            'nama_depan' => $json['nama_depan'] ?? '',
+            'nama_belakang' => $json['nama_belakang'] ?? '',
+            'gelar_depan' => $json['gelar_depan'] ?? '',
+            'gelar_belakang' => $json['gelar_belakang'] ?? '',
+            'jabatan' => $json['jabatan'] ?? '',
+            'status_pernikahan' => $json['status_pernikahan'] ?? 'Belum Kawin'
         ];
+
+        log_message('info', 'Data to update: ' . print_r($data, true));
 
         // Validasi sederhana
         if (empty($data['nama_depan']) || empty($data['nama_belakang'])) {
-            return $this->fail('Nama depan dan nama belakang harus diisi.');
+            return $this->fail('Nama depan dan nama belakang harus diisi.', 400);
         }
 
         try {
             $anggotaModel->update($id, $data);
+            log_message('info', 'Anggota updated successfully');
             return $this->respond(['message' => 'Anggota berhasil diupdate.']);
         } catch (\Exception $e) {
-            return $this->fail('Gagal mengupdate anggota: ' . $e->getMessage());
+            log_message('error', 'Update anggota error: ' . $e->getMessage());
+            return $this->fail('Gagal mengupdate anggota: ' . $e->getMessage(), 500);
         }
     }
 

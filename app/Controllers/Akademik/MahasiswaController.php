@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Akademik;
 
-use App\Models\MahasiswaModel;
+use App\Controllers\BaseController;
+use App\Models\Akademik\MahasiswaModel;
 
 class MahasiswaController extends BaseController
 {

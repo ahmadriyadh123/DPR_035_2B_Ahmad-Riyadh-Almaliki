@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Controllers\Admin;
+namespace App\Controllers\Akademik\Admin;
 
 use App\Controllers\BaseController;
-use App\Models\CourseModel;
+use App\Models\Akademik\CourseModel;
 
 class CourseController extends BaseController
 {

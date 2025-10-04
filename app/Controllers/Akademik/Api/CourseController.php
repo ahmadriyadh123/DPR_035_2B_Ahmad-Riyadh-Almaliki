@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Controllers\Api;
+namespace App\Controllers\Akademik\Api;
 
 use CodeIgniter\RESTful\ResourceController;
-use App\Models\CourseModel;
+use App\Models\Akademik\CourseModel;
 
 class CourseController extends ResourceController
 {

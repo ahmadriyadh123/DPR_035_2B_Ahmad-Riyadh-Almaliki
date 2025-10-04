@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Controllers\Api;
+namespace App\Controllers\Akademik\Api;
 
 use CodeIgniter\RESTful\ResourceController;
-use App\Models\TakeModel;
-use App\Models\StudentModel;
+use App\Models\Akademik\TakeModel;
+use App\Models\Akademik\StudentModel;
 
 class EnrollmentController extends ResourceController
 {

@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Controllers\Api;
+namespace App\Controllers\Akademik\Api;
 
 use CodeIgniter\RESTful\ResourceController;
-use App\Models\CourseModel;
-use App\Models\StudentModel;
-use App\Models\TakeModel;
+use App\Models\Akademik\CourseModel;
+use App\Models\Akademik\StudentModel;
+use App\Models\Akademik\TakeModel;
 
 /**
  * Kelas StudentViewController mengelola API untuk tampilan mahasiswa,

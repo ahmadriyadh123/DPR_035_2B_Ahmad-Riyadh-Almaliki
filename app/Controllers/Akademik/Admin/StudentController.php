@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Controllers\Admin;
+namespace App\Controllers\Akademik\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
-use App\Models\StudentModel;
-use App\Models\TakeModel; 
+use App\Models\Akademik\StudentModel;
+use App\Models\Akademik\TakeModel; 
 class StudentController extends BaseController
 {
     // Menampilkan daftar mahasiswa
@@ -36,7 +36,7 @@ class StudentController extends BaseController
         $userModel = new UserModel();
         $studentModel = new StudentModel();
 
-        // 1. Siapkan data untuk tabel 'users'
+        // 1. Siapkan data untuk tabel 'pengguna'
         $userData = [
             'username' => $this->request->getPost('username'),
             'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
@@ -83,7 +83,7 @@ class StudentController extends BaseController
 
         $data = [
             'title'    => 'Detail Mahasiswa',
-            'student'  => $user, // Mengirim data dari tabel 'users'
+            'student'  => $user, // Mengirim data dari tabel 'pengguna'
             'courses'  => $enrolledCourses,
         ];
 
