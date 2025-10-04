@@ -6,13 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded - Starting app initialization');
     
     const appContent = document.getElementById('app-content');
-    let csrfName = document.querySelector('meta[name="X-CSRF-TOKEN"]').content;
-    let csrfHash = document.querySelector('meta[name="X-CSRF-HEADER"]').content;
 
     console.log('App elements found:', {
-        appContent: !!appContent,
-        csrfName: csrfName,
-        csrfHash: csrfHash
+        appContent: !!appContent
     });
 
     // Cek apakah elemen penting tersedia
@@ -21,11 +17,76 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    if (!csrfName || !csrfHash) {
-        console.error('ERROR: CSRF tokens not found!', { csrfName, csrfHash });
+    // Cek apakah utils.js sudah dimuat
+    if (typeof fetchData === 'undefined') {
+        console.error('ERROR: utils.js tidak dimuat! Pastikan utils.js dimuat sebelum script ini.');
+        showError('Error: utils.js tidak dimuat!');
+        return;
     }
+    
+    // Load user info first to set permissions
+    loadUserInfo().then((userInfo) => {
+        // Check if user is logged in
+        if (!userInfo.isLoggedIn) {
+            // Redirect to login page if not authenticated
+            window.location.href = '/login';
+            return;
+        }
+        initializeApp();
+    }).catch(error => {
+        console.error('Failed to load user info:', error);
+        // Redirect to login on error
+        window.location.href = '/login';
+    });
 
     // --- FUNGSI-FUNGSI HELPER ---
+    
+    // Global variable to store user role
+    window.userRole = null;
+    
+    // Load user info from API
+    async function loadUserInfo() {
+        try {
+            const data = await fetchData('/api/user/info');
+            window.userRole = data.role;
+            console.log('User info loaded:', data);
+            return data;
+        } catch (error) {
+            console.error('Error loading user info:', error);
+            throw error;
+        }
+    }
+    
+    // Helper function to check if user is admin
+    const isUserAdmin = () => {
+        return window.userRole && window.userRole.toLowerCase() === 'admin';
+    };
+    
+    // Helper function to get action buttons based on user role
+    const getActionButtons = (id) => {
+        const detailBtn = `<button class="btn btn-sm btn-info detail-btn" data-id="${id}">Detail</button>`;
+        
+        if (isUserAdmin()) {
+            return `
+                ${detailBtn}
+                <button class="btn btn-sm btn-warning edit-btn" data-id="${id}">Edit</button>
+                <button class="btn btn-sm btn-danger delete-btn" data-id="${id}">Hapus</button>
+            `;
+        } else {
+            return detailBtn; // Only show detail button for non-admin users
+        }
+    };
+    
+    // Helper function to get add button for admin only
+    const getAddButton = () => {
+        if (isUserAdmin()) {
+            return '<button class="btn btn-primary" onclick="handleAddButtonClick()">Tambah Data Penggajian</button>';
+        } else {
+            // Show info for non-admin users
+            return '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Anda memiliki akses baca saja. Untuk melakukan perubahan data, hubungi administrator.</div>';
+        }
+    };
+    
     const showLoading = (message = 'Memuat...') => {
         appContent.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
@@ -48,22 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
         appContent.innerHTML = successAlert + currentContent;
     };
 
-    const updateCsrf = (newHash) => {
-        if (newHash) {
-            csrfHash = newHash;
-            // Update meta tag yang benar
-            const metaTag = document.querySelector('meta[name="X-CSRF-HEADER"]');
-            if (metaTag) {
-                metaTag.content = newHash;
-            } else {
-                console.warn('CSRF meta tag not found for update');
-            }
-        }
-    };
+    // CSRF token management sekarang dihandle oleh utils.js fetchData function
 
     // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
 
     function renderPenggajianSummary(data) {
+        // Simpan nilai search yang sedang diketik sebelum re-render
+        const currentSearchValue = document.getElementById('search-input')?.value || '';
+        
         const { penggajian, pager } = data;
         let penggajianRows = '';
         if (penggajian && penggajian.length > 0) {
@@ -74,9 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${item.jabatan}</td>
                         <td class="text-end">Rp ${parseFloat(item.take_home_pay).toLocaleString('id-ID')}</td>
                         <td>
-                            <button class="btn btn-sm btn-info detail-btn" data-id="${item.id_anggota}">Detail</button>
-                            <button class="btn btn-sm btn-warning edit-btn" data-id="${item.id_anggota}">Edit</button>
-                            <button class="btn btn-sm btn-danger delete-btn" data-id="${item.id_anggota}">Hapus</button>
+                            ${getActionButtons(item.id_anggota)}
                         </td>
                     </tr>`;
             });
@@ -111,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="d-flex gap-2">
                     <input type="text" class="form-control" id="search-input" placeholder="Cari nama, jabatan, ID, atau gaji..." style="width: 300px;">
                     <button class="btn btn-secondary" id="clear-search-btn">Clear</button>
-                    <button class="btn btn-primary add-btn">Tambah Penggajian</button>
+                    ${getAddButton()}
                 </div>
             </div>
             <div class="card">
@@ -131,18 +182,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
+        
+        // Kembalikan nilai search setelah re-render
+        setTimeout(() => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput && currentSearchValue) {
+                searchInput.value = currentSearchValue;
+                // Set cursor di akhir teks
+                searchInput.setSelectionRange(currentSearchValue.length, currentSearchValue.length);
+            }
+        }, 0);
     }
 
     function renderDetailPenggajian(data) {
-        const { anggota, komponen_gaji, take_home_pay } = data;
+        const { anggota, komponen_gaji, take_home_pay, tunjangan_anak_info } = data;
         let komponenRows = '';
 
         if (komponen_gaji && komponen_gaji.length > 0) {
             komponen_gaji.forEach(komponen => {
-                const nominal = parseFloat(komponen.nominal || 0);
+                let nominal = parseFloat(komponen.nominal || 0);
+                let infoTambahan = '';
+                
+                // Cek apakah ini Tunjangan Anak dan ada info khusus
+                const isTunjanganAnak = komponen.nama_komponen.toLowerCase().includes('tunjangan anak');
+                if (isTunjanganAnak && tunjangan_anak_info && tunjangan_anak_info.komponen_id == komponen.id_komponen_gaji) {
+                    // Hitung nominal berdasarkan jumlah anak (maksimal 2) - untuk display saja
+                    nominal = nominal * tunjangan_anak_info.jumlah_dihitung;
+                    infoTambahan = ` <small class="text-info">(${tunjangan_anak_info.jumlah_anak} anak, dihitung: ${tunjangan_anak_info.jumlah_dihitung})</small>`;
+                }
+                
                 komponenRows += `
                     <tr>
-                        <td>${komponen.nama_komponen}</td>
+                        <td>${komponen.nama_komponen}${infoTambahan}</td>
                         <td>${komponen.kategori}</td>
                         <td class="text-end">Rp ${nominal.toLocaleString('id-ID')}</td>
                     </tr>`;
@@ -152,6 +223,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const namaLengkap = `${anggota.gelar_depan || ''} ${anggota.nama_depan} ${anggota.nama_belakang}, ${anggota.gelar_belakang || ''}`.trim().replace(/^,|,$/g, '');
+
+        // Cari info jumlah anak dari data Tunjangan Anak
+        let jumlahAnak = 0;
+        let infoAnak = '';
+        if (tunjangan_anak_info) {
+            jumlahAnak = tunjangan_anak_info.jumlah_anak || 0;
+            if (jumlahAnak > 0) {
+                infoAnak = ` <small class="text-info">(dihitung: ${tunjangan_anak_info.jumlah_dihitung})</small>`;
+            }
+        }
 
         appContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -167,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Nama:</strong> ${namaLengkap}</p>
                             <p><strong>Jabatan:</strong> ${anggota.jabatan}</p>
                             <p><strong>Status Pernikahan:</strong> ${anggota.status_pernikahan || '-'}</p>
-                            <p><strong>Jumlah Anak:</strong> ${anggota.jumlah_anak || 0}</p>
+                            <p><strong>Jumlah Anak:</strong> ${jumlahAnak}${infoAnak}</p>
                         </div>
                     </div>
                 </div>
@@ -201,31 +282,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAddEditForm(data = {}) {
-        const { anggotaList = [] } = data;
+        const { anggotaList = [], editData = null, isEdit = false } = data;
+        const selectedAnggotaId = editData?.anggota?.id_anggota || '';
+        
         let anggotaOptions = '<option value="">-- Pilih Anggota --</option>';
         if (anggotaList && anggotaList.length > 0) {
             anggotaList.forEach(anggota => {
                 const namaLengkap = `${anggota.gelar_depan || ''} ${anggota.nama_depan} ${anggota.nama_belakang}, ${anggota.gelar_belakang || ''}`.trim().replace(/^,|,$/g, '');
-                anggotaOptions += `<option value="${anggota.id_anggota}" data-jabatan="${anggota.jabatan}">${namaLengkap}</option>`;
+                const isSelected = selectedAnggotaId == anggota.id_anggota ? 'selected' : '';
+                anggotaOptions += `<option value="${anggota.id_anggota}" data-jabatan="${anggota.jabatan}" ${isSelected}>${namaLengkap}</option>`;
             });
         }
 
+        const formTitle = isEdit ? 'Edit Penggajian' : 'Tambah Penggajian';
+        const formDataAttribute = isEdit && selectedAnggotaId ? `data-penggajian-id="${selectedAnggotaId}"` : '';
+
         appContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>Tambah Penggajian</h2>
+                <h2>${formTitle}</h2>
                 <button class="btn btn-secondary back-btn">Kembali</button>
             </div>
             <div class="card">
                 <div class="card-body">
-                    <form id="penggajian-form">
+                    <form id="penggajian-form" ${formDataAttribute}>
                         <div class="mb-3">
                             <label for="id_anggota" class="form-label">Anggota</label>
-                            <select class="form-select" id="id_anggota" name="id_anggota" required>${anggotaOptions}</select>
+                            <select class="form-select" id="id_anggota" name="id_anggota" required ${isEdit ? 'disabled' : ''}>${anggotaOptions}</select>
+                            ${isEdit ? `<input type="hidden" name="id_anggota_hidden" value="${selectedAnggotaId}">` : ''}
+                            ${isEdit ? '<small class="form-text text-muted">Anggota tidak dapat diubah saat edit</small>' : ''}
                         </div>
                         <div id="komponen-gaji-selector" class="mb-3">
                             <p class="text-muted">Pilih anggota untuk melihat komponen gaji.</p>
                         </div>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
+                        <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Simpan'}</button>
                     </form>
                 </div>
             </div>
@@ -233,26 +322,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchDetailPenggajianData(id) {
-        const response = await fetch(`${apiUrl}/penggajian/${id}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        if (!response.ok) throw new Error('Gagal mengambil detail penggajian');
-        const data = await response.json();
-        updateCsrf(data.csrf_hash);
-        return data;
+        try {
+            const data = await fetchData(`${apiUrl}/penggajian/${id}`);
+            return data;
+        } catch (error) {
+            throw new Error('Gagal mengambil detail penggajian: ' + error.message);
+        }
     }
 
     async function fetchAllAnggotaData() {
         try {
             // Untuk edit, kita perlu semua anggota, bukan hanya yang available
             // Sementara kita gunakan available anggota API dan tambahkan anggota yang sedang diedit
-            const response = await fetch(`${apiUrl}/penggajian/available-anggota`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!response.ok) throw new Error('Gagal mengambil daftar anggota');
-            const data = await response.json();
-            updateCsrf(data.csrf_hash);
-            return data.anggota;
+            const data = await fetchData(`${apiUrl}/penggajian/available-anggota`);
+            return data.anggota || [];
         } catch (error) {
             console.error('Error fetching all anggota:', error);
             return [];
@@ -270,17 +353,119 @@ document.addEventListener('DOMContentLoaded', () => {
         let checkboxesHtml = '<h5>Komponen Gaji Tersedia</h5>';
         komponenList.forEach(komponen => {
             const isSelected = selectedKomponen.some(selected => selected.id_komponen_gaji == komponen.id_komponen_gaji);
+            const isTunjanganAnak = komponen.nama_komponen.toLowerCase().includes('tunjangan anak');
+            
             checkboxesHtml += `
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="id_komponen[]" 
                            value="${komponen.id_komponen_gaji}" id="komponen-${komponen.id_komponen_gaji}"
-                           ${isSelected ? 'checked' : ''}>
+                           ${isSelected ? 'checked' : ''} ${isTunjanganAnak ? 'data-tunjangan-anak="true"' : ''}>
                     <label class="form-check-label" for="komponen-${komponen.id_komponen_gaji}">
                         ${komponen.nama_komponen} (Rp ${parseFloat(komponen.nominal).toLocaleString('id-ID')})
+                        ${isTunjanganAnak ? '<small class="text-info"> - Maksimal 2 anak</small>' : ''}
                     </label>
                 </div>`;
         });
         container.innerHTML = checkboxesHtml;
+        
+        // Add event listener untuk Tunjangan Anak checkboxes
+        const tunjanganAnakCheckboxes = container.querySelectorAll('input[data-tunjangan-anak="true"]');
+        tunjanganAnakCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', handleTunjanganAnakChange);
+        });
+    }
+
+    // Fungsi untuk menangani perubahan checkbox Tunjangan Anak
+    function handleTunjanganAnakChange(event) {
+        const checkbox = event.target;
+        const komponenId = checkbox.value;
+        
+        if (checkbox.checked) {
+            // Tampilkan modal input jumlah anak
+            showJumlahAnakModal(komponenId, checkbox);
+        } else {
+            // Hapus data jumlah anak yang tersimpan
+            delete window.tunjanganAnakData;
+        }
+    }
+
+    // Fungsi untuk menampilkan modal input jumlah anak
+    function showJumlahAnakModal(komponenId, checkbox) {
+        const modalHtml = `
+            <div class="modal fade" id="jumlahAnakModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Input Jumlah Anak</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="jumlah-anak-input" class="form-label">Jumlah Anak</label>
+                                <input type="number" id="jumlah-anak-input" class="form-control" 
+                                       min="0" max="10" value="1" required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> Tunjangan anak akan dihitung maksimal untuk 2 anak
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="button" class="btn btn-primary" id="confirm-jumlah-anak">Konfirmasi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove modal lama jika ada
+        const existingModal = document.getElementById('jumlahAnakModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Tambahkan modal ke body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Inisialisasi modal Bootstrap
+        const modal = new bootstrap.Modal(document.getElementById('jumlahAnakModal'));
+        modal.show();
+
+        // Handle konfirmasi
+        document.getElementById('confirm-jumlah-anak').addEventListener('click', () => {
+            const jumlahAnak = parseInt(document.getElementById('jumlah-anak-input').value) || 0;
+            
+            if (jumlahAnak < 1) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: 'Jumlah anak minimal 1 untuk mendapat tunjangan anak.'
+                });
+                return;
+            }
+
+            // Simpan data jumlah anak untuk digunakan saat submit
+            window.tunjanganAnakData = {
+                komponenId: komponenId,
+                jumlahAnak: jumlahAnak,
+                jumlahDihitung: Math.min(jumlahAnak, 2) // Maksimal 2 anak
+            };
+
+            // Update label checkbox untuk menampilkan info jumlah anak
+            const label = checkbox.nextElementSibling;
+            const originalText = label.innerHTML.split('<span')[0]; // Ambil text asli sebelum span info
+            label.innerHTML = `${originalText} <span class="text-success">- ${jumlahAnak} anak (dihitung: ${window.tunjanganAnakData.jumlahDihitung})</span>`;
+
+            modal.hide();
+        });
+
+        // Handle cancel - uncheck checkbox
+        document.getElementById('jumlahAnakModal').addEventListener('hidden.bs.modal', () => {
+            if (!window.tunjanganAnakData || window.tunjanganAnakData.komponenId !== komponenId) {
+                checkbox.checked = false;
+            }
+            document.getElementById('jumlahAnakModal').remove();
+        });
     }
 
     // --- FUNGSI-FUNGSI API ---
@@ -288,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiUrl = document.querySelector('meta[name="api-url"]').content;
 
     async function fetchPenggajianSummary(page = 1, search = '') {
-        showLoading('Memuat Data Penggajian...');
+        showLoading('Memuat Data Penggajian... (Mohon tunggu, sistem sedang menghitung gaji)');
         
         console.log('Starting fetchPenggajianSummary, page:', page, 'search:', search);
         console.log('API URL:', apiUrl);
@@ -300,21 +485,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             console.log('Requesting:', url);
             
-            const response = await fetch(url, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
+            const data = await fetchData(url);
             console.log('Received data:', data);
-            
-            updateCsrf(data.csrf_hash);
             
             // Cek jika ada error di response data
             if (data.error) {
@@ -343,12 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchDetailPenggajian(id) {
         showLoading('Memuat Detail Penggajian...');
         try {
-            const response = await fetch(`${apiUrl}/penggajian/${id}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const data = await response.json();
-            updateCsrf(data.csrf_hash);
-            if (!response.ok) throw new Error(data.message || `Gagal mengambil data (Status: ${response.status})`);
+            const data = await fetchData(`${apiUrl}/penggajian/${id}`);
             renderDetailPenggajian(data);
         } catch (error) {
             console.error('Error fetching detail:', error);
@@ -359,13 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAvailableAnggota() {
         try {
             // Mengambil semua anggota yang belum memiliki data penggajian
-            const response = await fetch(`${apiUrl}/penggajian/available-anggota`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!response.ok) throw new Error('Gagal mengambil daftar anggota.');
-            const data = await response.json();
-            updateCsrf(data.csrf_hash);
-            return data.anggota;
+            const data = await fetchData(`${apiUrl}/penggajian/available-anggota`);
+            return data.anggota || [];
         } catch (error) {
             console.error('Error fetching available anggota:', error);
             showError(error.message);
@@ -376,13 +538,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchKomponenByJabatan(jabatan) {
         if (!jabatan) return [];
         try {
-            const response = await fetch(`${apiUrl}/komponengaji/by-jabatan/${jabatan}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!response.ok) throw new Error('Gagal mengambil komponen gaji.');
-            const data = await response.json();
-            updateCsrf(data.csrf_hash);
-            return data.komponen;
+            const data = await fetchData(`${apiUrl}/komponengaji/by-jabatan/${jabatan}`);
+            return data.komponen || [];
         } catch (error) {
             console.error('Error fetching komponen by jabatan:', error);
             showError(error.message);
@@ -393,24 +550,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function savePenggajian(formData) {
         showLoading('Menyimpan data...');
         try {
-            const response = await fetch(`${apiUrl}/penggajian`, {
+            const data = await fetchData(`${apiUrl}/penggajian`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    [csrfName]: csrfHash
-                },
                 body: JSON.stringify(formData)
             });
-
-            const result = await response.json();
-            updateCsrf(result.csrf_hash);
-
-            if (!response.ok) {
-                // Menampilkan pesan error validasi dari server
-                const errorMessages = result.messages && result.messages.error ? result.messages.error : 'Gagal menyimpan data.';
-                throw new Error(errorMessages);
-            }
             
             await fetchPenggajianSummary(); // Tunggu summary selesai sebelum menampilkan success
             showSuccess('Data penggajian berhasil disimpan.');
@@ -424,24 +567,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updatePenggajian(id, formData) {
         showLoading('Memperbarui data...');
         try {
-            const response = await fetch(`${apiUrl}/penggajian/${id}`, {
+            const data = await fetchData(`${apiUrl}/penggajian/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    [csrfName]: csrfHash
-                },
                 body: JSON.stringify(formData)
             });
-
-            const result = await response.json();
-            updateCsrf(result.csrf_hash);
-
-            if (!response.ok) {
-                // Menampilkan pesan error validasi dari server
-                const errorMessages = result.messages && result.messages.error ? result.messages.error : 'Gagal memperbarui data.';
-                throw new Error(errorMessages);
-            }
             
             await fetchPenggajianSummary(); // Tunggu summary selesai sebelum menampilkan success
             showSuccess('Data penggajian berhasil diperbarui.');
@@ -454,20 +583,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function deletePenggajian(id) {
         try {
-            const response = await fetch(`${apiUrl}/penggajian/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    [csrfName]: csrfHash
-                }
+            const data = await fetchData(`${apiUrl}/penggajian/${id}`, {
+                method: 'DELETE'
             });
-
-            const result = await response.json();
-            updateCsrf(result.csrf_hash);
-
-            if (!response.ok) {
-                throw new Error(result.error || 'Gagal menghapus data.');
-            }
             
             await fetchPenggajianSummary();
             showSuccess('Data penggajian berhasil dihapus.');
@@ -547,17 +665,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleFormSubmit(event) {
         event.preventDefault();
         const form = event.target;
-        const id_anggota = form.id_anggota.value;
+        
+        // Untuk mode edit, gunakan hidden field jika select disabled
+        const id_anggota = form.id_anggota_hidden?.value || form.id_anggota.value;
         const id_komponen = [...form.querySelectorAll('input[name="id_komponen[]"]:checked')].map(cb => cb.value);
         
         // Check if this is edit mode (penggajian ID is stored in form data-id attribute)
         const penggajianId = form.getAttribute('data-penggajian-id');
         const isEdit = penggajianId && penggajianId !== '';
 
-        console.log('Form submitted:', { id_anggota, id_komponen, penggajianId, isEdit });
+        // Prepare form data dengan info Tunjangan Anak jika ada
+        let formData = { id_anggota, id_komponen };
+        
+        // Jika ada data Tunjangan Anak, tambahkan ke form data
+        if (window.tunjanganAnakData && id_komponen.includes(window.tunjanganAnakData.komponenId)) {
+            formData.tunjangan_anak_info = {
+                komponen_id: window.tunjanganAnakData.komponenId,
+                jumlah_anak: window.tunjanganAnakData.jumlahAnak,
+                jumlah_dihitung: window.tunjanganAnakData.jumlahDihitung
+            };
+        }
 
-        if (!id_anggota) {
-            // Gunakan SweetAlert untuk notifikasi yang lebih baik
+        console.log('📝 Form submitted:', { id_anggota, id_komponen, penggajianId, isEdit, formData });
+
+        // Validasi anggota hanya untuk mode create, tidak untuk edit
+        if (!isEdit && !id_anggota) {
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
@@ -566,6 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
+        // Validasi komponen gaji tetap berlaku untuk create dan edit
         if (id_komponen.length === 0) {
              Swal.fire({
                 icon: 'error',
@@ -576,9 +709,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (isEdit) {
-            updatePenggajian(penggajianId, { id_anggota, id_komponen });
+            updatePenggajian(penggajianId, formData);
         } else {
-            savePenggajian({ id_anggota, id_komponen });
+            savePenggajian(formData);
         }
     }
 
@@ -631,7 +764,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Ambil detail penggajian
                 const detailData = await fetchDetailPenggajianData(id);
                 // Ambil semua anggota (tidak hanya yang available)
-                const anggotaModel = new AnggotaModel();
                 const allAnggota = await fetchAllAnggotaData();
                 
                 renderAddEditForm({ 
@@ -644,6 +776,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (detailData && detailData.anggota) {
                     const komponenList = await fetchKomponenByJabatan(detailData.anggota.jabatan);
                     renderKomponenGajiSelector(komponenList, detailData.komponen_gaji);
+                    
+                    // Restore data Tunjangan Anak jika ada
+                    if (detailData.tunjangan_anak_info) {
+                        window.tunjanganAnakData = detailData.tunjangan_anak_info;
+                        
+                        // Update label checkbox Tunjangan Anak
+                        setTimeout(() => {
+                            const checkbox = document.querySelector(`input[value="${detailData.tunjangan_anak_info.komponen_id}"][data-tunjangan-anak="true"]`);
+                            if (checkbox && checkbox.checked) {
+                                const label = checkbox.nextElementSibling;
+                                const originalText = label.innerHTML.split('<span')[0];
+                                label.innerHTML = `${originalText} <span class="text-success">- ${detailData.tunjangan_anak_info.jumlah_anak} anak (dihitung: ${detailData.tunjangan_anak_info.jumlah_dihitung})</span>`;
+                            }
+                        }, 100);
+                    }
                 }
                 
             } catch (error) {
@@ -653,6 +800,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- FUNGSI INISIALISASI ---
+    function initializeApp() {
+        fetchPenggajianSummary();
+    }
+
     // --- INISIALISASI ---
-    fetchPenggajianSummary();
+    // Application initialization moved to DOMContentLoaded event listener above
 });

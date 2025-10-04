@@ -13,6 +13,78 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return;
     }
+    
+    // Load user info first to set permissions
+    loadUserInfo().then((userInfo) => {
+        // Check if user is logged in
+        if (!userInfo.isLoggedIn) {
+            // Redirect to login page if not authenticated
+            window.location.href = '/login';
+            return;
+        }
+        initializeApp();
+    }).catch(error => {
+        console.error('Failed to load user info:', error);
+        // Redirect to login on error
+        window.location.href = '/login';
+    });
+    
+    // Initialize the app after user permissions are loaded
+    function initializeApp() {
+        // Load members data first time
+        loadMembers(1);
+    }
+
+    // --- FUNGSI-FUNGSI HELPER ---
+    
+    // Global variable to store user role
+    window.userRole = window.userRole || null;
+    
+    // Load user info from API
+    async function loadUserInfo() {
+        try {
+            const data = await fetchData('/api/user/info');
+            window.userRole = data.role;
+            console.log('User info loaded:', data);
+            return data;
+        } catch (error) {
+            console.error('Error loading user info:', error);
+            throw error;
+        }
+    }
+    
+    // Helper function to check if user is admin
+    const isUserAdmin = () => {
+        return window.userRole && window.userRole.toLowerCase() === 'admin';
+    };
+    
+    // Helper function to get action buttons based on user role
+    const getActionButtons = (id, name) => {
+        if (isUserAdmin()) {
+            return `
+                <button class="btn btn-sm btn-warning edit-btn" data-id="${id}">Edit</button>
+                <button class="btn btn-sm btn-danger delete-btn" data-id="${id}" data-name="${name}">Hapus</button>
+            `;
+        } else {
+            return '<span class="text-muted">Read Only</span>'; // No action buttons for non-admin users
+        }
+    };
+    
+    // Helper function to get add button for admin only
+    const getAddButton = () => {
+        if (isUserAdmin()) {
+            return '<button class="btn btn-primary add-member-btn">Tambah Anggota</button>';
+        } else {
+            // Show info for non-admin users
+            return '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Anda memiliki akses baca saja. Untuk melakukan perubahan data, hubungi administrator.</div>';
+        }
+    };
+    
+    const showError = (message) => {
+        if (appContent) {
+            appContent.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+        }
+    };
 
     // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
 
@@ -35,8 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${anggota.jabatan}</td>
                         <td>${anggota.status_pernikahan || 'Belum Kawin'}</td>
                         <td>
-                            <button class="btn btn-sm btn-warning edit-btn" data-id="${anggota.id_anggota}">Edit</button>
-                            <button class="btn btn-sm btn-danger delete-btn" data-id="${anggota.id_anggota}" data-name="${anggota.nama_depan} ${anggota.nama_belakang}">Hapus</button>
+                            ${getActionButtons(anggota.id_anggota, `${anggota.nama_depan} ${anggota.nama_belakang}`)}
                         </td>
                     </tr>`;
             });
@@ -66,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="d-flex gap-2">
                     <input type="text" class="form-control" id="search-input" placeholder="Cari ID, nama, jabatan, atau status..." style="width: 300px;">
                     <button class="btn btn-secondary" id="clear-search-btn">Clear</button>
-                    <button class="btn btn-primary add-member-btn">Tambah Anggota</button>
+                    ${getAddButton()}
                 </div>
             </div>
             <div class="card">
@@ -172,6 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await fetchData(url);
             renderMemberList(data);
         } catch (error) {
+            // Check if user is not logged in
+            if (error.message.includes('Authentication required') || error.message.includes('login')) {
+                window.location.href = '/login';
+                return;
+            }
+            // For other errors, show appropriate message
             appContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
         }
     }
@@ -278,7 +355,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
-    // Inisialisasi: muat daftar anggota pertama kali
-    loadMembers(1);
 });
