@@ -5,7 +5,7 @@ use CodeIgniter\Model;
 class PenggajianModel extends Model
 {
     protected $table            = 'penggajian';
-    protected $primaryKey       = ['id_anggota', 'id_komponen_gaji'];
+    protected $primaryKey       = 'id_anggota';
     protected $useAutoIncrement = false;
     protected $allowedFields    = ['id_anggota', 'id_komponen_gaji'];
     protected $returnType       = 'object';
@@ -55,43 +55,71 @@ class PenggajianModel extends Model
      */
     public function assignKomponenToAnggota(int $id_anggota, array $id_komponen)
     {
+        log_message('info', '🔄 Starting assignKomponenToAnggota for anggota: ' . $id_anggota);
+        log_message('info', '📋 Komponen IDs: ' . print_r($id_komponen, true));
+        
         $this->db->transStart();
 
         // 1. Validasi: Pastikan anggota ada
         $anggotaModel = new AnggotaModel();
         $anggota = $anggotaModel->find($id_anggota);
         if (!$anggota) {
+            log_message('error', '❌ Anggota tidak ditemukan: ' . $id_anggota);
             throw new \Exception('Anggota tidak ditemukan.');
         }
+        
+        log_message('info', '✅ Anggota ditemukan: ' . $anggota->nama_depan . ' ' . $anggota->nama_belakang . ' (' . $anggota->jabatan . ')');
 
         // 2. Hapus komponen lama untuk anggota ini (jika ada)
-        $this->where('id_anggota', $id_anggota)->delete();
+        $deleted = $this->where('id_anggota', $id_anggota)->delete();
+        log_message('info', '🗑️ Deleted old records: ' . ($deleted ? 'success' : 'none or failed'));
 
         // 3. Validasi & Insert komponen baru
         $komponenGajiModel = new KomponenGajiModel();
         foreach ($id_komponen as $id) {
+            log_message('info', '🔍 Processing komponen ID: ' . $id);
+            
             $komponen = $komponenGajiModel->find($id);
             if (!$komponen) {
+                log_message('error', '❌ Komponen gaji tidak valid: ' . $id);
                 throw new \Exception("Komponen gaji dengan ID {$id} tidak valid.");
             }
+            
+            log_message('info', '✅ Komponen found: ' . $komponen->nama_komponen . ' for jabatan: ' . $komponen->jabatan);
 
             // Validasi jabatan
             if ($komponen->jabatan !== 'Semua' && $komponen->jabatan !== $anggota->jabatan) {
+                log_message('error', '❌ Jabatan mismatch: ' . $komponen->jabatan . ' vs ' . $anggota->jabatan);
                 throw new \Exception("Komponen '{$komponen->nama_komponen}' tidak sesuai untuk jabatan '{$anggota->jabatan}'.");
             }
 
-            // Insert data baru
-            $this->insert([
+            // Insert data baru menggunakan query builder untuk menghindari masalah composite key
+            $insertData = [
                 'id_anggota' => $id_anggota,
                 'id_komponen_gaji' => $id,
-            ]);
+            ];
+            
+            log_message('info', '💾 Inserting data: ' . print_r($insertData, true));
+            
+            // Gunakan query builder langsung
+            $insertResult = $this->db->table($this->table)->insert($insertData);
+            if (!$insertResult) {
+                $error = $this->db->error();
+                log_message('error', '❌ Failed to insert: ' . print_r($error, true));
+                throw new \Exception('Gagal menyimpan data komponen gaji: ' . ($error['message'] ?? 'Unknown error'));
+            }
+            
+            log_message('info', '✅ Successfully inserted komponen: ' . $id);
         }
 
         $this->db->transComplete();
 
         if ($this->db->transStatus() === false) {
+            log_message('error', '❌ Transaction failed');
             throw new \Exception('Gagal menyimpan data penggajian ke database.');
         }
+        
+        log_message('info', '🎉 Transaction completed successfully');
     }
 
     /**
@@ -157,7 +185,7 @@ class PenggajianModel extends Model
         // 2. Ambil semua komponen gaji yang terhubung dengan anggota
         $assignedKomponen = $this->where('id_anggota', $id_anggota)
                                 ->join('komponen_gaji', 'komponen_gaji.id_komponen_gaji = penggajian.id_komponen_gaji')
-                                ->select('komponen_gaji.*') // Hanya pilih kolom dari komponen_gaji
+                                ->select('komponen_gaji.*') 
                                 ->findAll();
 
         // 3. Hitung take home pay
