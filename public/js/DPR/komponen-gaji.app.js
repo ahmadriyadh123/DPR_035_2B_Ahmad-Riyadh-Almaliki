@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNGSI-FUNGSI RENDER TAMPILAN ---
 
     // Fungsi untuk merender daftar komponen gaji beserta pagination
-    function renderKomponenGajiList(data) {
+    function renderKomponenList(data) {
         const { komponen_gaji, pager } = data;
         let komponenGajiRows = '';
         if (komponen_gaji && komponen_gaji.length > 0) {
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const jabatan = komponen.jabatan || '';
         const nominal = komponen.nominal || '';
         const satuan = komponen.satuan || '';
-        const actionUrl = isEdit ? `/api/komponen_gaji/${komponen.id_komponen_gaji}` : '/api/komponen_gaji';
+        const actionUrl = isEdit ? `/api/komponengaji/${komponen.id_komponen_gaji}` : '/api/komponengaji';
         const method = isEdit ? 'PUT' : 'POST';
 
         const modalHtml = `
@@ -82,24 +82,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="modal-body">
                                 <div class="mb-3">
-                                    <label for="form-nama-depan" class="form-label">Nama Komponen</label>
-                                    <input type="text" id="form-nama-depan" class="form-control" value="${namaKomponen}" required>
+                                    <label for="form-nama-komponen" class="form-label">Nama Komponen</label>
+                                    <input type="text" id="form-nama-komponen" class="form-control" value="${namaKomponen}" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="form-nama-belakang" class="form-label">Kategori</label>
-                                    <input type="text" id="form-nama-belakang" class="form-control" value="${kategori}" required>
+                                    <label for="form-kategori" class="form-label">Kategori</label>
+                                    <input type="text" id="form-kategori" class="form-control" value="${kategori}" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="form-gelar-depan" class="form-label">Jabatan</label>
-                                    <input type="text" id="form-gelar-depan" class="form-control" value="${jabatan}" required>
+                                    <label for="form-jabatan" class="form-label">Jabatan</label>
+                                    <input type="text" id="form-jabatan" class="form-control" value="${jabatan}" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="form-gelar-belakang" class="form-label">Nominal</label>
-                                    <input type="text" id="form-gelar-belakang" class="form-control" value="${nominal}" required>
+                                    <label for="form-nominal" class="form-label">Nominal</label>
+                                    <input type="text" id="form-nominal" class="form-control" value="${nominal}" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="form-jabatan" class="form-label">Satuan</label>
-                                    <input type="text" id="form-jabatan" class="form-control" value="${satuan}" required>
+                                    <label for="form-satuan" class="form-label">Satuan</label>
+                                    <input type="text" id="form-satuan" class="form-control" value="${satuan}" required>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fungsi untuk memuat daftar komponen dari API
     async function loadKomponen(page = 1) {
         try {
-            const data = await fetchData(`/api/komponen_gaji?page=${page}`);
+            const data = await fetchData(`/api/komponengaji?page=${page}`);
             renderKomponenList(data);
         } catch (error) {
             appContent.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
@@ -135,9 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (event.target.classList.contains('edit-btn')) {
-            const komponenId = event.target.dataset.id_komponen_gaji;
+            const komponenId = event.target.dataset.id;
             try {
-                const komponenData = await fetchData(`/api/komponen_gaji/${komponenId}`);
+                const komponenData = await fetchData(`/api/komponengaji/${komponenId}`);
                 renderKomponenFormModal('Edit Komponen', komponenData);
             } catch (error) {
                 Swal.fire('Error!', error.message, 'error');
@@ -145,8 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (event.target.classList.contains('delete-btn')) {
-            const komponenId = event.target.dataset.id_komponen_gaji;
-            const komponenName = event.target.dataset.nama_komponen;
+            const komponenId = event.target.dataset.id;
+            const komponenName = event.target.dataset.name;
 
             const result = await Swal.fire({
                 title: 'Apakah Anda yakin?',
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.isConfirmed) {
                 try {
                     // Kirim request DELETE ke API
-                    const response = await fetchData(`/api/komponen_gaji/${komponenId}`, {
+                    const response = await fetchData(`/api/komponengaji/${komponenId}`, {
                         method: 'DELETE'
                     });
                     Swal.fire('Berhasil!', response.message, 'success');
@@ -181,8 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const method = form.dataset.method;
             const formData = {
                 nama_komponen: document.getElementById('form-nama-komponen').value,
-                jenis_komponen: document.getElementById('form-jenis-komponen').value,
-                nilai: document.getElementById('form-nilai').value
+                kategori: document.getElementById('form-kategori').value,
+                jabatan: document.getElementById('form-jabatan').value,
+                nominal: document.getElementById('form-nominal').value,
+                satuan: document.getElementById('form-satuan').value
             };
 
             try {

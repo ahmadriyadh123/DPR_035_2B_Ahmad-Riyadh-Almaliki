@@ -7,6 +7,6 @@ class KomponenGajiController extends BaseController
     public function spaShell()
     {
         $data = ['title' => 'Kelola Komponen Gaji'];
-        return view('admin/komponen_gaji/index', $data);
+        return view('DPR/admin/komponengaji/index', $data);
     }
 }

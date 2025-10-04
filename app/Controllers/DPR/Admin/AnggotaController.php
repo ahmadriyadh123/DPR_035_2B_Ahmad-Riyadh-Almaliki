@@ -7,6 +7,6 @@ class AnggotaController extends BaseController
     public function spaShell()
     {
         $data = ['title' => 'Kelola Anggota'];
-        return view('admin/anggota/index', $data);
+        return view('DPR/admin/anggota/index', $data);
     }
 }

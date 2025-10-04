@@ -1,9 +1,29 @@
 // File: public/js/DPR/penggajian-app.js
 
+console.log('Penggajian-app.js loaded successfully!');
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Starting app initialization');
+    
     const appContent = document.getElementById('app-content');
-    let csrfName = document.querySelector('meta[name=csrf-cookie-name]').content;
-    let csrfHash = document.querySelector('meta[name=csrf-token]').content;
+    let csrfName = document.querySelector('meta[name="X-CSRF-TOKEN"]').content;
+    let csrfHash = document.querySelector('meta[name="X-CSRF-HEADER"]').content;
+
+    console.log('App elements found:', {
+        appContent: !!appContent,
+        csrfName: csrfName,
+        csrfHash: csrfHash
+    });
+
+    // Cek apakah elemen penting tersedia
+    if (!appContent) {
+        console.error('ERROR: app-content element not found!');
+        return;
+    }
+
+    if (!csrfName || !csrfHash) {
+        console.error('ERROR: CSRF tokens not found!', { csrfName, csrfHash });
+    }
 
     // --- FUNGSI-FUNGSI HELPER ---
     const showLoading = (message = 'Memuat...') => {
@@ -31,7 +51,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateCsrf = (newHash) => {
         if (newHash) {
             csrfHash = newHash;
-            document.querySelector('meta[name=csrf-token]').content = newHash;
+            // Update meta tag yang benar
+            const metaTag = document.querySelector('meta[name="X-CSRF-HEADER"]');
+            if (metaTag) {
+                metaTag.content = newHash;
+            } else {
+                console.warn('CSRF meta tag not found for update');
+            }
         }
     };
 
@@ -49,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td class="text-end">Rp ${parseFloat(item.take_home_pay).toLocaleString('id-ID')}</td>
                         <td>
                             <button class="btn btn-sm btn-info detail-btn" data-id="${item.id_anggota}">Detail</button>
+                            <button class="btn btn-sm btn-warning edit-btn" data-id="${item.id_anggota}">Edit</button>
                             <button class="btn btn-sm btn-danger delete-btn" data-id="${item.id_anggota}">Hapus</button>
                         </td>
                     </tr>`;
@@ -81,7 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
         appContent.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2>Data Penggajian Anggota</h2>
-                <button class="btn btn-primary add-btn">Tambah Penggajian</button>
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control" id="search-input" placeholder="Cari nama, jabatan, ID, atau gaji..." style="width: 300px;">
+                    <button class="btn btn-secondary" id="clear-search-btn">Clear</button>
+                    <button class="btn btn-primary add-btn">Tambah Penggajian</button>
+                </div>
             </div>
             <div class="card">
                 <div class="card-body">
@@ -175,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (anggotaList && anggotaList.length > 0) {
             anggotaList.forEach(anggota => {
                 const namaLengkap = `${anggota.gelar_depan || ''} ${anggota.nama_depan} ${anggota.nama_belakang}, ${anggota.gelar_belakang || ''}`.trim().replace(/^,|,$/g, '');
-                anggotaOptions += `<option value="${anggota.id}">${namaLengkap}</option>`;
+                anggotaOptions += `<option value="${anggota.id_anggota}" data-jabatan="${anggota.jabatan}">${namaLengkap}</option>`;
             });
         }
 
@@ -201,7 +232,35 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    function renderKomponenGajiSelector(komponenList) {
+    async function fetchDetailPenggajianData(id) {
+        const response = await fetch(`${apiUrl}/penggajian/${id}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!response.ok) throw new Error('Gagal mengambil detail penggajian');
+        const data = await response.json();
+        updateCsrf(data.csrf_hash);
+        return data;
+    }
+
+    async function fetchAllAnggotaData() {
+        try {
+            // Untuk edit, kita perlu semua anggota, bukan hanya yang available
+            // Sementara kita gunakan available anggota API dan tambahkan anggota yang sedang diedit
+            const response = await fetch(`${apiUrl}/penggajian/available-anggota`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) throw new Error('Gagal mengambil daftar anggota');
+            const data = await response.json();
+            updateCsrf(data.csrf_hash);
+            return data.anggota;
+        } catch (error) {
+            console.error('Error fetching all anggota:', error);
+            return [];
+        }
+    }
+
+    // Update renderKomponenGajiSelector untuk mendukung pre-selected checkboxes
+    function renderKomponenGajiSelector(komponenList, selectedKomponen = []) {
         const container = document.getElementById('komponen-gaji-selector');
         if (!komponenList || komponenList.length === 0) {
             container.innerHTML = '<p class="text-danger">Tidak ada komponen gaji yang tersedia untuk jabatan ini.</p>';
@@ -210,10 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let checkboxesHtml = '<h5>Komponen Gaji Tersedia</h5>';
         komponenList.forEach(komponen => {
+            const isSelected = selectedKomponen.some(selected => selected.id_komponen_gaji == komponen.id_komponen_gaji);
             checkboxesHtml += `
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="id_komponen[]" value="${komponen.id}" id="komponen-${komponen.id}">
-                    <label class="form-check-label" for="komponen-${komponen.id}">
+                    <input class="form-check-input" type="checkbox" name="id_komponen[]" 
+                           value="${komponen.id_komponen_gaji}" id="komponen-${komponen.id_komponen_gaji}"
+                           ${isSelected ? 'checked' : ''}>
+                    <label class="form-check-label" for="komponen-${komponen.id_komponen_gaji}">
                         ${komponen.nama_komponen} (Rp ${parseFloat(komponen.nominal).toLocaleString('id-ID')})
                     </label>
                 </div>`;
@@ -223,20 +285,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNGSI-FUNGSI API ---
 
-    const apiUrl = document.body.dataset.apiUrl;
+    const apiUrl = document.querySelector('meta[name="api-url"]').content;
 
-    async function fetchPenggajianSummary(page = 1) {
+    async function fetchPenggajianSummary(page = 1, search = '') {
         showLoading('Memuat Data Penggajian...');
+        
+        console.log('Starting fetchPenggajianSummary, page:', page, 'search:', search);
+        console.log('API URL:', apiUrl);
+        
         try {
-            const response = await fetch(`${apiUrl}/penggajian/summary?page=${page}`, {
+            let url = `${apiUrl}/penggajian/summary?page=${page}`;
+            if (search.trim()) {
+                url += `&search=${encodeURIComponent(search.trim())}`;
+            }
+            console.log('Requesting:', url);
+            
+            const response = await fetch(url, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
+            
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
+            console.log('Received data:', data);
+            
             updateCsrf(data.csrf_hash);
-            if (!response.ok) throw new Error(`Gagal mengambil data (Status: ${response.status})`);
+            
+            // Cek jika ada error di response data
+            if (data.error) {
+                console.error('Server returned error:', data.error);
+                showError(`Error: ${data.error}`);
+                return;
+            }
+            
+            // Pastikan data memiliki struktur yang diharapkan
+            if (!data.penggajian || !Array.isArray(data.penggajian)) {
+                console.error('Invalid data structure:', data);
+                showError('Data penggajian tidak valid dari server');
+                return;
+            }
+            
+            console.log('Data is valid, rendering...');
             renderPenggajianSummary(data);
+            
         } catch (error) {
-            showError(error.message);
+            console.error('Error fetching summary:', error);
+            console.error('Error stack:', error.stack);
+            showError(`Gagal memuat data penggajian: ${error.message || 'Periksa koneksi internet dan coba lagi.'}`);
         }
     }
 
@@ -248,16 +348,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             updateCsrf(data.csrf_hash);
-            if (!response.ok) throw new Error(`Gagal mengambil data (Status: ${response.status})`);
+            if (!response.ok) throw new Error(data.message || `Gagal mengambil data (Status: ${response.status})`);
             renderDetailPenggajian(data);
         } catch (error) {
-            showError(error.message);
+            console.error('Error fetching detail:', error);
+            showError(`Terjadi kesalahan: ${error.message}.`);
         }
     }
 
     async function fetchAvailableAnggota() {
         try {
-            const response = await fetch(`${apiUrl}/anggota?limit=1000`, {
+            // Mengambil semua anggota yang belum memiliki data penggajian
+            const response = await fetch(`${apiUrl}/penggajian/available-anggota`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
             if (!response.ok) throw new Error('Gagal mengambil daftar anggota.');
@@ -265,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCsrf(data.csrf_hash);
             return data.anggota;
         } catch (error) {
+            console.error('Error fetching available anggota:', error);
             showError(error.message);
             return [];
         }
@@ -279,8 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Gagal mengambil komponen gaji.');
             const data = await response.json();
             updateCsrf(data.csrf_hash);
-            return data;
+            return data.komponen;
         } catch (error) {
+            console.error('Error fetching komponen by jabatan:', error);
             showError(error.message);
             return [];
         }
@@ -303,28 +407,118 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCsrf(result.csrf_hash);
 
             if (!response.ok) {
-                throw new Error(result.error || 'Gagal menyimpan data.');
+                // Menampilkan pesan error validasi dari server
+                const errorMessages = result.messages && result.messages.error ? result.messages.error : 'Gagal menyimpan data.';
+                throw new Error(errorMessages);
             }
             
-            fetchPenggajianSummary();
+            await fetchPenggajianSummary(); // Tunggu summary selesai sebelum menampilkan success
             showSuccess('Data penggajian berhasil disimpan.');
 
         } catch (error) {
-            fetchPenggajianSummary();
+            // Render ulang form dengan pesan error
+            await handleAddButtonClick(error.message);
+        }
+    }
+
+    async function updatePenggajian(id, formData) {
+        showLoading('Memperbarui data...');
+        try {
+            const response = await fetch(`${apiUrl}/penggajian/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [csrfName]: csrfHash
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+            updateCsrf(result.csrf_hash);
+
+            if (!response.ok) {
+                // Menampilkan pesan error validasi dari server
+                const errorMessages = result.messages && result.messages.error ? result.messages.error : 'Gagal memperbarui data.';
+                throw new Error(errorMessages);
+            }
+            
+            await fetchPenggajianSummary(); // Tunggu summary selesai sebelum menampilkan success
+            showSuccess('Data penggajian berhasil diperbarui.');
+
+        } catch (error) {
+            console.error('❌ Error updating penggajian:', error);
+            showError(error.message);
+        }
+    }
+
+    async function deletePenggajian(id) {
+        try {
+            const response = await fetch(`${apiUrl}/penggajian/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    [csrfName]: csrfHash
+                }
+            });
+
+            const result = await response.json();
+            updateCsrf(result.csrf_hash);
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Gagal menghapus data.');
+            }
+            
+            await fetchPenggajianSummary();
+            showSuccess('Data penggajian berhasil dihapus.');
+
+        } catch (error) {
+            console.error('Error deleting penggajian:', error);
             showError(error.message);
         }
     }
 
     // --- EVENT HANDLERS ---
 
-    async function handleAddButtonClick() {
+    async function handleAddButtonClick(errorMessage = null) {
         const anggotaList = await fetchAvailableAnggota();
         renderAddEditForm({ anggotaList });
+        if (errorMessage) {
+            // Sisipkan pesan error di atas form
+            const formCard = document.querySelector('#penggajian-form').closest('.card');
+            if (formCard) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger';
+                errorDiv.innerHTML = errorMessage;
+                formCard.parentNode.insertBefore(errorDiv, formCard);
+            }
+        }
     }
 
     function handleDetailButtonClick(event) {
         const id = event.target.dataset.id;
         if (id) fetchDetailPenggajian(id);
+    }
+
+    function handleDeleteButtonClick(event) {
+        const id = event.target.dataset.id;
+        const nama = event.target.closest('tr').querySelector('td').textContent;
+        if (!id) return;
+
+        Swal.fire({
+            title: 'Anda yakin?',
+            text: `Menghapus data penggajian untuk "${nama}" tidak dapat dibatalkan.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deletePenggajian(id);
+            }
+        });
     }
 
     function handleBackButtonClick() {
@@ -338,19 +532,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleAnggotaChange(event) {
-        const selectedAnggotaId = event.target.value;
-        if (!selectedAnggotaId) {
+        const selectedOption = event.target.options[event.target.selectedIndex];
+        const jabatan = selectedOption.dataset.jabatan;
+        
+        if (!jabatan) {
             renderKomponenGajiSelector([]);
             return;
         }
         
-        const anggotaList = await fetchAvailableAnggota();
-        const selectedAnggota = anggotaList.find(a => a.id == selectedAnggotaId);
-        
-        if (selectedAnggota) {
-            const komponenList = await fetchKomponenByJabatan(selectedAnggota.jabatan);
-            renderKomponenGajiSelector(komponenList);
-        }
+        const komponenList = await fetchKomponenByJabatan(jabatan);
+        renderKomponenGajiSelector(komponenList);
     }
 
     function handleFormSubmit(event) {
@@ -358,13 +549,37 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = event.target;
         const id_anggota = form.id_anggota.value;
         const id_komponen = [...form.querySelectorAll('input[name="id_komponen[]"]:checked')].map(cb => cb.value);
+        
+        // Check if this is edit mode (penggajian ID is stored in form data-id attribute)
+        const penggajianId = form.getAttribute('data-penggajian-id');
+        const isEdit = penggajianId && penggajianId !== '';
 
-        if (!id_anggota || id_komponen.length === 0) {
-            showError('Harap pilih anggota dan minimal satu komponen gaji.');
+        console.log('📝 Form submitted:', { id_anggota, id_komponen, penggajianId, isEdit });
+
+        if (!id_anggota) {
+            // Gunakan SweetAlert untuk notifikasi yang lebih baik
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Harap pilih anggota terlebih dahulu.',
+            });
+            return;
+        }
+        
+        if (id_komponen.length === 0) {
+             Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Harap pilih minimal satu komponen gaji.',
+            });
             return;
         }
 
-        savePenggajian({ id_anggota, id_komponen });
+        if (isEdit) {
+            updatePenggajian(penggajianId, { id_anggota, id_komponen });
+        } else {
+            savePenggajian({ id_anggota, id_komponen });
+        }
     }
 
     // --- DELEGASI EVENT ---
@@ -372,8 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
     appContent.addEventListener('click', (event) => {
         if (event.target.classList.contains('add-btn')) handleAddButtonClick();
         else if (event.target.classList.contains('detail-btn')) handleDetailButtonClick(event);
+        else if (event.target.classList.contains('edit-btn')) handleEditButtonClick(event);
+        else if (event.target.classList.contains('delete-btn')) handleDeleteButtonClick(event);
         else if (event.target.classList.contains('back-btn')) handleBackButtonClick();
         else if (event.target.matches('.pagination a')) handlePaginationClick(event);
+        else if (event.target.id === 'clear-search-btn') handleClearSearch();
     });
 
     appContent.addEventListener('change', (event) => {
@@ -383,6 +601,57 @@ document.addEventListener('DOMContentLoaded', () => {
     appContent.addEventListener('submit', (event) => {
         if (event.target.id === 'penggajian-form') handleFormSubmit(event);
     });
+
+    appContent.addEventListener('input', (event) => {
+        if (event.target.id === 'search-input') {
+            // Debounce search untuk menghindari terlalu banyak request
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                const searchValue = event.target.value;
+                fetchPenggajianSummary(1, searchValue);
+            }, 500);
+        }
+    });
+
+    // Fungsi untuk clear search
+    function handleClearSearch() {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = '';
+            fetchPenggajianSummary(1, '');
+        }
+    }
+
+    // Fungsi untuk handle edit button click
+    async function handleEditButtonClick(event) {
+        const id = event.target.dataset.id;
+        if (id) {
+            showLoading('Memuat data untuk edit...');
+            try {
+                // Ambil detail penggajian
+                const detailData = await fetchDetailPenggajianData(id);
+                // Ambil semua anggota (tidak hanya yang available)
+                const anggotaModel = new AnggotaModel();
+                const allAnggota = await fetchAllAnggotaData();
+                
+                renderAddEditForm({ 
+                    anggotaList: allAnggota, 
+                    editData: detailData, 
+                    isEdit: true 
+                });
+                
+                // Pre-load komponen gaji berdasarkan jabatan anggota
+                if (detailData && detailData.anggota) {
+                    const komponenList = await fetchKomponenByJabatan(detailData.anggota.jabatan);
+                    renderKomponenGajiSelector(komponenList, detailData.komponen_gaji);
+                }
+                
+            } catch (error) {
+                console.error('Error loading edit data:', error);
+                showError('Gagal memuat data untuk edit: ' + error.message);
+            }
+        }
+    }
 
     // --- INISIALISASI ---
     fetchPenggajianSummary();
